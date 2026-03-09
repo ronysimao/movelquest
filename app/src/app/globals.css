@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+/* ============================================
+   MóvelQuest Design System
+   Fonte: Manrope | Primária: #1466b8
+   Extraído das telas do Google Stitch
+   ============================================ */
+
+@theme inline {
+  /* Colors */
+  --color-primary: #1466b8;
+  --color-primary-light: rgba(20, 102, 184, 0.1);
+  --color-primary-dark: #0f529a;
+  --color-bg-light: #f6f7f8;
+  --color-bg-dark: #111921;
+
+  /* Fonts */
+  --font-display: "Manrope", sans-serif;
+
+  /* Border Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+}
+
+/* Global Styles */
+body {
+  font-family: var(--font-display);
+  background: var(--color-bg-dark);
+  color: #e2e8f0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 4px;
+}
+
+/* Material Icons */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-spin-slow {
+  animation: spin 1.5s linear infinite;
+}
+
+/* Print styles for Quote PDF */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  .print-container {
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* ============================================
+   Rules: maozinha.md
+   Enforce pointer cursor on all clickable items
+   ============================================ */
+button, 
+a, 
+select, 
+input[type="button"], 
+input[type="submit"], 
+input[type="reset"], 
+input[type="checkbox"], 
+input[type="radio"], 
+label[for],
+summary,
+[role="button"],
+.cursor-pointer {
+  cursor: pointer !important;
+}
