@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-br">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1466b8",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111921",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <title>MóvelQuest Admin - Dashboard</title>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+    <div class="flex min-h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside
+            class="w-72 bg-slate-50 dark:bg-slate-900/50 border-r border-slate-200 dark:border-slate-800 flex flex-col">
+            <div class="p-6">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 rounded-full bg-primary flex items-center justify-center text-white">
+                        <span class="material-symbols-outlined">database</span>
+                    </div>
+                    <div>
+                        <h1 class="text-base font-bold leading-tight">MóvelQuest</h1>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Admin Console</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex-1 px-4 space-y-1">
+                <a class="flex items-center gap-3 px-3 py-2 text-primary bg-primary/10 rounded-lg font-medium" href="#">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <span>Dashboard</span>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors font-medium"
+                    href="#">
+                    <span class="material-symbols-outlined">upload_file</span>
+                    <span>Upload de Dados</span>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors font-medium"
+                    href="#">
+                    <span class="material-symbols-outlined">history</span>
+                    <span>Histórico de Cargas</span>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors font-medium"
+                    href="#">
+                    <span class="material-symbols-outlined">settings</span>
+                    <span>Configurações</span>
+                </a>
+            </nav>
+            <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+                <button
+                    class="flex items-center gap-3 px-3 py-2 w-full text-slate-600 dark:text-slate-400 hover:text-red-500 transition-colors font-medium">
+                    <span class="material-symbols-outlined text-red-500">logout</span>
+                    <span>Sair do Sistema</span>
+                </button>
+            </div>
+        </aside>
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+            <!-- Header -->
+            <header
+                class="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 bg-white/50 dark:bg-background-dark/50 backdrop-blur-md sticky top-0 z-10">
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-400">Admin</span>
+                    <span class="material-symbols-outlined text-sm">chevron_right</span>
+                    <span class="font-medium">Gerenciamento de Dados</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button
+                        class="size-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <span class="material-symbols-outlined">notifications</span>
+                    </button>
+                    <div class="h-8 w-[1px] bg-slate-200 dark:bg-slate-800"></div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-sm font-bold">Admin User</p>
+                            <p class="text-xs text-slate-500">Super Admin</p>
+                        </div>
+                        <div class="size-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                            <img class="w-full h-full object-cover" data-alt="Avatar image of the administrative user"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfL9Ua0udwji1cxd1LzyxpsrSO7TVw5uAuMtIgebh7SbyHPMU8LAqMdBQf3dds0PRkfERiTiMP5qp8Z0nFzyLZ29IEXP12DXT_-k5M4G1UVrr-Bi-SGRBZb-1BdnRgmeXmLtrSLP0yMkn4__-4nT2VyUNrn48hqk6dDoP4uKzKGXr1gKH34VCQ9b8lJ8WxscibpsBkHKAkbeH0pq23GYZx_HyjIUHkiyLs6EHeteY0nzx7EgMoNaaW0giL4-LXLl-m_cNzEw5Ip86F" />
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <div class="p-8 max-w-7xl mx-auto w-full space-y-8">
+                <!-- Page Title -->
+                <div>
+                    <h2 class="text-3xl font-extrabold tracking-tight">Painel de Importação</h2>
+                    <p class="text-slate-500 dark:text-slate-400 mt-1">Carregue novos arquivos XLSX ou PDF para
+                        processamento centralizado.</p>
+                </div>
+                <!-- Content Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Upload Section -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <div
+                            class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                            <h3 class="text-lg font-bold mb-4">Upload de Arquivos</h3>
+                            <div
+                                class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-10 flex flex-col items-center justify-center text-center bg-slate-50/50 dark:bg-slate-900/50 hover:border-primary/50 transition-colors group cursor-pointer">
+                                <div
+                                    class="size-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
+                                    <span class="material-symbols-outlined text-3xl">cloud_upload</span>
+                                </div>
+                                <h4 class="text-base font-bold">Arraste e solte seus documentos aqui</h4>
+                                <p class="text-sm text-slate-500 mt-1">Suporta arquivos .xlsx e .pdf (Max 50MB)</p>
+                                <button
+                                    class="mt-6 px-6 py-2.5 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors">
+                                    Selecionar Arquivos
+                                </button>
+                            </div>
+                            <div
+                                class="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg flex items-center justify-between border border-slate-200 dark:border-slate-800">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-primary">description</span>
+                                    <div>
+                                        <p class="text-sm font-bold">relatorio_vendas_q3.xlsx</p>
+                                        <p class="text-xs text-slate-500">1.2 MB • Pronto para processar</p>
+                                    </div>
+                                </div>
+                                <button class="text-slate-400 hover:text-red-500 transition-colors">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            <div class="mt-8 flex justify-end">
+                                <button
+                                    class="flex items-center gap-2 px-8 py-3 bg-primary text-white font-bold rounded-lg shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all">
+                                    <span class="material-symbols-outlined animate-spin text-sm">sync</span>
+                                    Processar Dados
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Processing Stats -->
+                    <div class="space-y-6">
+                        <div
+                            class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                            <h3 class="text-lg font-bold mb-4">Status da Fila</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium">Em processamento</span>
+                                    <span
+                                        class="text-xs font-bold px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded">1
+                                        Arquivo</span>
+                                </div>
+                                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-primary h-full w-[45%]"></div>
+                                </div>
+                                <p class="text-xs text-slate-500">Estimado: 2 minutos restantes</p>
+                            </div>
+                        </div>
+                        <div class="bg-primary/10 dark:bg-primary/5 rounded-xl border border-primary/20 p-6">
+                            <div class="flex items-start gap-4">
+                                <div
+                                    class="size-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary shrink-0">
+                                    <span class="material-symbols-outlined">info</span>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-primary">Dica do Administrador</h4>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                        Certifique-se de que os arquivos XLSX usem o padrão de cabeçalho v2.0 para
+                                        evitar erros de mapeamento.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Table History -->
+                <div
+                    class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <div
+                        class="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                        <h3 class="text-lg font-bold">Histórico de Cargas</h3>
+                        <div class="flex items-center gap-2">
+                            <div class="relative">
+                                <span
+                                    class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                                <input
+                                    class="pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-64"
+                                    placeholder="Filtrar arquivos..." type="text" />
+                            </div>
+                            <button class="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-500">
+                                <span class="material-symbols-outlined text-xl">filter_list</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead
+                                class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-6 py-4">Data da Carga</th>
+                                    <th class="px-6 py-4">Arquivo</th>
+                                    <th class="px-6 py-4">Processados</th>
+                                    <th class="px-6 py-4">Status</th>
+                                    <th class="px-6 py-4 text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col">
+                                            <span class="text-sm font-medium">12 Mai, 2024</span>
+                                            <span class="text-xs text-slate-500">14:32</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <span class="material-symbols-outlined text-emerald-500">table_chart</span>
+                                            <span class="text-sm font-medium">vendas_unidade_central.xlsx</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">1,240 registros
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600">
+                                            Sucesso
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-slate-400 hover:text-primary transition-colors">
+                                            <span class="material-symbols-outlined">visibility</span>
+                                        </button>
+                                        <button class="text-slate-400 hover:text-primary transition-colors ml-3">
+                                            <span class="material-symbols-outlined">download</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col">
+                                            <span class="text-sm font-medium">11 Mai, 2024</span>
+                                            <span class="text-xs text-slate-500">09:15</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <span class="material-symbols-outlined text-red-500">picture_as_pdf</span>
+                                            <span class="text-sm font-medium">faturas_rejeitadas.pdf</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">0 registros</td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-600">
+                                            Falha
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-slate-400 hover:text-primary transition-colors">
+                                            <span class="material-symbols-outlined text-amber-500">error</span>
+                                        </button>
+                                        <button class="text-slate-400 hover:text-primary transition-colors ml-3">
+                                            <span class="material-symbols-outlined">refresh</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col">
+                                            <span class="text-sm font-medium">10 Mai, 2024</span>
+                                            <span class="text-xs text-slate-500">18:45</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <span class="material-symbols-outlined text-primary">table_chart</span>
+                                            <span class="text-sm font-medium">inventario_anual_limpo.xlsx</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">8,500 registros
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600">
+                                            Sucesso
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-slate-400 hover:text-primary transition-colors">
+                                            <span class="material-symbols-outlined">visibility</span>
+                                        </button>
+                                        <button class="text-slate-400 hover:text-primary transition-colors ml-3">
+                                            <span class="material-symbols-outlined">download</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="p-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                        <p class="text-sm text-slate-500">Mostrando 3 de 156 arquivos carregados</p>
+                        <div class="flex items-center gap-2">
+                            <button
+                                class="p-2 border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+                                disabled="">
+                                <span class="material-symbols-outlined">chevron_left</span>
+                            </button>
+                            <button class="size-8 bg-primary text-white rounded-lg font-bold text-sm">1</button>
+                            <button
+                                class="size-8 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg font-bold text-sm">2</button>
+                            <button
+                                class="size-8 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg font-bold text-sm">3</button>
+                            <button
+                                class="p-2 border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                <span class="material-symbols-outlined">chevron_right</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>
