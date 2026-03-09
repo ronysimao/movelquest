@@ -37,11 +37,11 @@ function ProductCard({
             </div>
 
             {/* Content */}
-            <div className="p-4 flex flex-col flex-1">
-                <span className="text-[10px] font-bold text-primary uppercase mb-1">
+            <div className="p-4 flex flex-col flex-1 min-w-0 w-full overflow-hidden">
+                <span className="text-[10px] font-bold text-primary uppercase mb-1 block truncate">
                     {movel.categoria}
                 </span>
-                <h3 className="font-bold text-white mb-2 leading-tight">
+                <h3 className="font-bold text-white mb-2 leading-tight line-clamp-2 break-words text-sm sm:text-base">
                     {movel.modelo}
                     {movel.variante && (
                         <span className="text-slate-400 font-normal">
@@ -53,27 +53,27 @@ function ProductCard({
 
                 {/* Dimensions */}
                 {(movel.altura_cm || movel.largura_cm || movel.comprimento_cm) && (
-                    <div className="grid grid-cols-3 gap-1 mb-4">
+                    <div className="grid grid-cols-3 gap-1 sm:gap-2 mb-4">
                         {movel.altura_cm && (
-                            <div className="text-[10px] bg-slate-800/50 p-1 rounded text-center">
-                                <span className="block text-slate-400 font-medium">Alt.</span>
-                                <span className="font-bold text-white">
+                            <div className="text-[10px] bg-slate-800/50 p-1 sm:p-2 rounded text-center min-w-0 overflow-hidden">
+                                <span className="block text-slate-400 font-medium truncate">Alt.</span>
+                                <span className="font-bold text-white block truncate">
                                     {movel.altura_cm}cm
                                 </span>
                             </div>
                         )}
                         {movel.largura_cm && (
-                            <div className="text-[10px] bg-slate-800/50 p-1 rounded text-center">
-                                <span className="block text-slate-400 font-medium">Larg.</span>
-                                <span className="font-bold text-white">
+                            <div className="text-[10px] bg-slate-800/50 p-1 sm:p-2 rounded text-center min-w-0 overflow-hidden">
+                                <span className="block text-slate-400 font-medium truncate">Larg.</span>
+                                <span className="font-bold text-white block truncate">
                                     {movel.largura_cm}cm
                                 </span>
                             </div>
                         )}
                         {movel.comprimento_cm && (
-                            <div className="text-[10px] bg-slate-800/50 p-1 rounded text-center">
-                                <span className="block text-slate-400 font-medium">Prof.</span>
-                                <span className="font-bold text-white">
+                            <div className="text-[10px] bg-slate-800/50 p-1 sm:p-2 rounded text-center min-w-0 overflow-hidden">
+                                <span className="block text-slate-400 font-medium truncate">Prof.</span>
+                                <span className="font-bold text-white block truncate">
                                     {movel.comprimento_cm}cm
                                 </span>
                             </div>
@@ -83,12 +83,12 @@ function ProductCard({
 
                 {/* Price + Action */}
                 <div className="mt-auto pt-4 flex items-center justify-between border-t border-slate-800">
-                    <span className="font-extrabold text-lg text-white">
+                    <span className="font-extrabold text-base sm:text-lg text-white truncate max-w-[70%]">
                         {formatCurrency(movel.preco)}
                     </span>
                     <button
                         onClick={() => onOpen(movel)}
-                        className="bg-primary/10 hover:bg-primary text-primary hover:text-white p-2 rounded-lg transition-colors"
+                        className="bg-primary/10 hover:bg-primary text-primary hover:text-white p-2 rounded-lg transition-colors shrink-0"
                     >
                         <span className="material-symbols-outlined">open_in_new</span>
                     </button>
@@ -104,12 +104,46 @@ function ProductCard({
 function ProductModal({
     movel,
     onClose,
+    user,
+    onUpdate,
 }: {
     movel: Movel;
     onClose: () => void;
+    user: Profile | null;
+    onUpdate: (updatedMovel: Movel) => void;
 }) {
     const placeholderImg = "/placeholder-furniture.jpg";
     const imgUrl = movel.imagem_url || placeholderImg;
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("movel_id", movel.id.toString());
+
+            const res = await fetch("/api/moveis/upload-image", {
+                method: "POST",
+                body: formData,
+            });
+            const data = await res.json();
+            if (data.success && data.imagem_url) {
+                onUpdate({ ...movel, imagem_url: data.imagem_url });
+                alert("Imagem atualizada com sucesso!");
+            } else {
+                alert(data.error || "Erro ao atualizar a imagem");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Erro interno ao enviar a imagem");
+        } finally {
+            setIsUploading(false);
+        }
+    };
 
     // Prevent body scroll when modal is open
     useEffect(() => {
@@ -146,7 +180,7 @@ function ProductModal({
                 </button>
 
                 {/* Image */}
-                <div className="lg:w-1/2 h-72 lg:h-auto bg-slate-800 relative">
+                <div className="lg:w-1/2 h-72 lg:h-auto bg-slate-800 relative group">
                     <div
                         className="w-full h-full bg-cover bg-center min-h-[300px]"
                         style={{
@@ -155,9 +189,26 @@ function ProductModal({
                         }}
                     />
                     {movel.fornecedor && (
-                        <div className="absolute bottom-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-xs font-bold uppercase">
+                        <div className="absolute bottom-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-xs font-bold uppercase z-10">
                             {(movel.fornecedor as unknown as { nome: string }).nome}
                         </div>
+                    )}
+
+                    {user?.perfil === "admin" && (
+                        <label className="absolute bottom-4 right-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 hover:bg-slate-800 hover:border-primary transition-all text-white p-3 rounded-full shadow-xl flex items-center justify-center cursor-pointer z-20 group/upload" title="Alterar Imagem">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleImageUpload}
+                                disabled={isUploading}
+                            />
+                            {isUploading ? (
+                                <span className="material-symbols-outlined text-primary animate-spin-slow">sync</span>
+                            ) : (
+                                <span className="material-symbols-outlined text-white group-hover/upload:text-primary transition-colors">edit_square</span>
+                            )}
+                        </label>
                     )}
                 </div>
 
@@ -580,7 +631,7 @@ export default function SearchPage() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col overflow-x-hidden w-full relative">
             {/* Header */}
             <header className="border-b border-slate-800 bg-bg-dark/50 sticky top-0 z-40 backdrop-blur-md">
                 <div className="max-w-[1600px] mx-auto px-4 h-16 flex items-center justify-between">
@@ -645,14 +696,14 @@ export default function SearchPage() {
                 </aside>
 
                 {/* Main Content */}
-                <main className="flex-1 p-6">
+                <main className="flex-1 min-w-0 p-4 sm:p-6 w-full max-w-full">
                     {/* Title + View Toggle */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-                        <div>
-                            <h1 className="text-2xl font-bold text-white">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4 w-full">
+                        <div className="min-w-0 w-full">
+                            <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
                                 Catálogo de Vendas
                             </h1>
-                            <p className="text-sm text-slate-500">
+                            <p className="text-xs sm:text-sm text-slate-500">
                                 {loading
                                     ? "Carregando..."
                                     : `Exibindo ${totalCount} produtos disponíveis`}
@@ -669,14 +720,14 @@ export default function SearchPage() {
                             <p className="text-sm">Carregando catálogo...</p>
                         </div>
                     ) : moveis.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+                        <div className="flex flex-col items-center justify-center py-20 text-slate-500 w-full overflow-hidden">
                             <span className="material-symbols-outlined text-5xl mb-3">
                                 search_off
                             </span>
-                            <p className="text-lg font-bold mb-1">
+                            <p className="text-lg font-bold mb-1 truncate px-4">
                                 Nenhum produto encontrado
                             </p>
-                            <p className="text-sm">
+                            <p className="text-sm text-center px-4">
                                 Tente ajustar os filtros de busca
                             </p>
                             <button
@@ -688,7 +739,7 @@ export default function SearchPage() {
                         </div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 w-full">
                                 {moveis.map((movel) => (
                                     <ProductCard
                                         key={movel.id}
@@ -804,6 +855,15 @@ export default function SearchPage() {
                 <ProductModal
                     movel={selectedMovel}
                     onClose={() => setSelectedMovel(null)}
+                    user={user}
+                    onUpdate={(updatedMovel) => {
+                        setSelectedMovel(updatedMovel);
+                        setMoveis((prev) =>
+                            prev.map((m) =>
+                                m.id === updatedMovel.id ? updatedMovel : m
+                            )
+                        );
+                    }}
                 />
             )}
         </div>

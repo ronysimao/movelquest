@@ -20,8 +20,22 @@ export default function AdminLayout({
     const router = useRouter();
     const pathname = usePathname();
     const [user, setUser] = useState<Profile | null>(null);
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(false); // Default to closed on mobile
     const [loggingOut, setLoggingOut] = useState(false);
+
+    // Responsive sidebar handling
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth >= 1024) {
+                setSidebarOpen(true);
+            } else {
+                setSidebarOpen(false);
+            }
+        };
+        handleResize(); // Initial check
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     useEffect(() => {
         async function fetchUser() {
@@ -50,11 +64,20 @@ export default function AdminLayout({
 
     return (
         <div className="flex min-h-screen overflow-hidden">
+            {/* Mobile Overlay */}
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
             <aside
                 className={cn(
-                    "bg-slate-900/50 border-r border-slate-800 flex flex-col transition-all duration-300",
-                    sidebarOpen ? "w-72" : "w-20"
+                    "bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300 z-50",
+                    "fixed inset-y-0 left-0 lg:static lg:h-auto",
+                    sidebarOpen ? "w-72 translate-x-0" : "w-72 -translate-x-full lg:w-20 lg:translate-x-0"
                 )}
             >
                 {/* Logo */}
@@ -75,12 +98,20 @@ export default function AdminLayout({
                 {/* Toggle */}
                 <button
                     onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="mx-4 mb-4 p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors self-end"
+                    className="mx-4 mb-4 p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors self-end hidden lg:block"
                     title={sidebarOpen ? "Recolher menu" : "Expandir menu"}
                 >
                     <span className="material-symbols-outlined text-xl">
                         {sidebarOpen ? "menu_open" : "menu"}
                     </span>
+                </button>
+
+                {/* Mobile Close */}
+                <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="absolute top-4 right-4 p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors lg:hidden"
+                >
+                    <span className="material-symbols-outlined text-xl">close</span>
                 </button>
 
                 {/* Nav */}
@@ -126,16 +157,22 @@ export default function AdminLayout({
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col h-screen overflow-y-auto">
+            <main className="flex-1 flex flex-col h-screen overflow-y-auto relative">
                 {/* Header */}
-                <header className="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-bg-dark/50 backdrop-blur-md sticky top-0 z-10">
+                <header className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-8 bg-slate-950/80 backdrop-blur-md sticky top-0 z-10 w-full col-span-full">
                     <div className="flex items-center gap-2 text-sm">
-                        <span className="text-slate-500">Admin</span>
-                        <span className="material-symbols-outlined text-slate-600 text-sm">
+                        <button
+                            className="lg:hidden mr-2 text-slate-400 hover:text-white flex items-center justify-center p-1 rounded-md"
+                            onClick={() => setSidebarOpen(true)}
+                        >
+                            <span className="material-symbols-outlined">menu</span>
+                        </button>
+                        <span className="text-slate-500 hidden sm:inline">Admin</span>
+                        <span className="material-symbols-outlined text-slate-600 text-sm hidden sm:inline">
                             chevron_right
                         </span>
-                        <span className="font-medium text-white">
-                            Gerenciamento de Dados
+                        <span className="font-medium text-white truncate max-w-[150px] sm:max-w-none">
+                            Gerenciamento
                         </span>
                     </div>
                     <div className="flex items-center gap-4">
@@ -160,7 +197,7 @@ export default function AdminLayout({
                 </header>
 
                 {/* Page Content */}
-                <div className="p-8 max-w-7xl mx-auto w-full">{children}</div>
+                <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">{children}</div>
             </main>
         </div>
     );

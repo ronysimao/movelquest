@@ -79,6 +79,26 @@ CATEGORY_KEYWORDS: dict[str, str] = {
     "criado": "CRIADO-MUDO",
     "comoda": "CÔMODA",
     "cômoda": "CÔMODA",
+    "armario": "ARMÁRIO",
+    "armário": "ARMÁRIO",
+    "roupeiro": "ARMÁRIO",
+    "guarda-roupa": "ARMÁRIO",
+    "colchao": "COLCHÃO",
+    "colchão": "COLCHÃO",
+    "painel": "PAINEL",
+    "nicho": "NICHO",
+    "prateleira": "PRATELEIRA",
+    "banco": "BANCO",
+    "puff": "PUFF",
+    "puf": "PUFF",
+    "berco": "BERÇO",
+    "berço": "BERÇO",
+    "escrivaninha": "ESCRIVANINHA",
+    "centro": "MESA DE CENTRO",
+    "lateral": "MESA LATERAL",
+    "cabideiro": "CABIDEIRO",
+    "conjunto": "CONJUNTO",
+    "espelho": "ESPELHO",
 }
 
 # ============================================================
@@ -451,6 +471,13 @@ def parse_custom_format(wb: openpyxl.Workbook, filename: str) -> list[FurnitureR
                 all_rows, sheet_name, sheet_category, supplier_code, supplier_name
             )
 
+        # Ultimate fallback for unstructured entries if the above failed to capture records
+        if not parsed:
+            log.info("Applying generic fallback parser for sheet: %s", sheet_name)
+            parsed = _parse_generic_fallback(
+                all_rows, sheet_name, sheet_category, supplier_code, supplier_name
+            )
+
         rows.extend(parsed)
         log.info("Sheet '%s': extracted %d rows", sheet_name, len(parsed))
 
@@ -683,6 +710,60 @@ def _parse_simple_list(
                 )
                 if fr.is_valid():
                     rows.append(fr)
+
+    return rows
+
+
+def _parse_generic_fallback(
+    all_rows: list[tuple],
+    sheet_name: str,
+    sheet_category: str,
+    supplier_code: str,
+    supplier_name: str,
+) -> list[FurnitureRow]:
+    """
+    Catch-all generic parser.
+    Scans every row. If it finds a long text column that looks like a product name,
+    and a numeric column that looks like a price, it creates a record.
+    """
+    rows: list[FurnitureRow] = []
+
+    for r_idx, row in enumerate(all_rows):
+        cells = list(row)
+        product_name = ""
+        price = 0.0
+
+        for c in cells:
+            val = clean_text(c)
+            num = parse_number(c)
+
+            # Identify price (first positive number > 5 that isn't clearly a dimension or quantity)
+            if num is not None and num > 5 and price == 0.0:
+                price = num
+
+            # Identify name (string > 5 chars, no purely numeric)
+            if num is None and len(val) > 5 and not product_name:
+                upper_val = val.upper()
+                # Exclude common header words and purely descriptive non-items
+                if not any(
+                    kw in upper_val
+                    for kw in ["TABELA", "PREÇO", "VALOR", "CÓDIGO", "OBSERVA", "DESCRIÇÃO", "PAGAMENTO"]
+                ):
+                    product_name = val
+
+        if product_name and price > 0:
+            cat = detect_category(product_name) or sheet_category or "OUTROS"
+            fr = FurnitureRow(
+                cod_fornecedor=supplier_code,
+                fornecedor_nome=supplier_name,
+                categoria=cat,
+                modelo=product_name,
+                preco=price,
+            )
+            if fr.is_valid():
+                rows.append(fr)
+                if r_idx < 100:
+                    log.info("Fallback matched: [%s] %s -> %s", cat, product_name, price)
 
     return rows
 

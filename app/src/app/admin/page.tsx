@@ -311,9 +311,9 @@ function HistoryTable({
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                    <thead className="bg-slate-800/50 text-slate-500 text-xs font-bold uppercase tracking-wider">
+            <div className="w-full">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-800/50 text-slate-500 text-xs font-bold uppercase tracking-wider hidden md:table-header-group">
                         <tr>
                             <th className="px-6 py-4">Data da Carga</th>
                             <th className="px-6 py-4">Arquivo</th>
@@ -322,7 +322,7 @@ function HistoryTable({
                             <th className="px-6 py-4 text-right">Ações</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800">
+                    <tbody className="flex flex-col md:table-row-group gap-4 p-4 md:p-0 md:gap-0 divide-y-0 md:divide-y divide-slate-800">
                         {loading ? (
                             <tr>
                                 <td colSpan={5} className="px-6 py-16 text-center">
@@ -356,10 +356,11 @@ function HistoryTable({
                                 return (
                                     <tr
                                         key={carga.id}
-                                        className="hover:bg-slate-800/50 transition-colors"
+                                        className="hover:bg-slate-800/60 transition-colors flex flex-col md:table-row bg-slate-800/30 md:bg-transparent rounded-xl md:rounded-none border border-slate-700 md:border-0 overflow-hidden"
                                     >
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col">
+                                        <td className="px-4 py-3 md:px-6 md:py-4 flex justify-between items-center md:table-cell border-b border-slate-700/50 md:border-0">
+                                            <span className="md:hidden text-xs font-bold text-slate-500 uppercase">Data da Carga</span>
+                                            <div className="flex flex-col text-right md:text-left">
                                                 <span className="text-sm font-medium text-white">
                                                     {formatDateTime(carga.data_upload).split(",")[0] ||
                                                         formatDateTime(carga.data_upload)}
@@ -373,87 +374,101 @@ function HistoryTable({
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
+                                        <td className="px-4 py-3 md:px-6 md:py-4 flex justify-between items-center md:table-cell border-b border-slate-700/50 md:border-0">
+                                            <span className="md:hidden text-xs font-bold text-slate-500 uppercase">Arquivo</span>
+                                            <div className="flex items-center gap-3 justify-end md:justify-start">
                                                 <span
                                                     className={cn(
-                                                        "material-symbols-outlined",
+                                                        "material-symbols-outlined shrink-0",
                                                         fi.color
                                                     )}
                                                 >
                                                     {fi.icon}
                                                 </span>
-                                                <span className="text-sm font-medium text-white">
+                                                <span className="text-sm font-medium text-white truncate max-w-[150px] sm:max-w-[200px] md:max-w-none">
                                                     {carga.nome_arquivo}
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-slate-400">
-                                            {carga.registros_processados?.toLocaleString("pt-BR") || 0}{" "}
-                                            registros
+                                        <td className="px-4 py-3 md:px-6 md:py-4 flex justify-between items-center md:table-cell text-sm text-slate-400 border-b border-slate-700/50 md:border-0">
+                                            <span className="md:hidden text-xs font-bold text-slate-500 uppercase">Processados</span>
+                                            <span>
+                                                {carga.registros_processados?.toLocaleString("pt-BR") || 0}{" "}
+                                                registros
+                                            </span>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <StatusBadge status={carga.status} />
+                                        <td className="px-4 py-3 md:px-6 md:py-4 flex justify-between items-center md:table-cell border-b border-slate-700/50 md:border-0">
+                                            <span className="md:hidden text-xs font-bold text-slate-500 uppercase">Status</span>
+                                            <div className="flex justify-end md:justify-start">
+                                                <StatusBadge status={carga.status} />
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 text-right flex justify-end items-center gap-2">
-                                            {carga.status === "sucesso" && (
-                                                <>
-                                                    <button
-                                                        className="text-slate-400 hover:text-primary transition-colors cursor-pointer"
-                                                        title="Ver detalhes"
-                                                    >
-                                                        <span className="material-symbols-outlined text-lg opacity-60">
-                                                            visibility
+                                        <td className="px-4 py-4 md:px-6 md:py-4 flex justify-end md:table-cell bg-slate-900/30 md:bg-transparent items-center gap-2">
+                                            <div className="flex items-center gap-3 md:justify-end w-full md:w-auto justify-end">
+                                                {carga.status === "sucesso" && (
+                                                    <>
+                                                        <button
+                                                            className="flex items-center gap-1.5 md:block px-3 py-1.5 md:p-0 rounded-lg md:rounded-none bg-slate-800 md:bg-transparent text-slate-400 hover:text-primary transition-colors cursor-pointer"
+                                                            title="Ver detalhes"
+                                                        >
+                                                            <span className="material-symbols-outlined text-lg opacity-60">
+                                                                visibility
+                                                            </span>
+                                                            <span className="md:hidden text-xs font-bold">Ver</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(carga.id)}
+                                                            className="flex items-center gap-1.5 md:block px-3 py-1.5 md:p-0 rounded-lg md:rounded-none bg-red-900/20 md:bg-transparent text-red-500 hover:text-red-400 transition-colors ml-2 cursor-pointer"
+                                                            title="Excluir importação"
+                                                        >
+                                                            <span className="material-symbols-outlined text-lg opacity-80">
+                                                                delete
+                                                            </span>
+                                                            <span className="md:hidden text-xs font-bold">Excluir</span>
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {carga.status === "falha" && (
+                                                    <>
+                                                        <button
+                                                            className="flex items-center gap-1.5 md:block px-3 py-1.5 md:p-0 rounded-lg md:rounded-none bg-slate-800 md:bg-transparent text-amber-500 hover:text-amber-400 transition-colors cursor-pointer"
+                                                            title="Ver erro"
+                                                        >
+                                                            <span className="material-symbols-outlined text-lg opacity-80">
+                                                                error
+                                                            </span>
+                                                            <span className="md:hidden text-xs font-bold">Erro</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(carga.id)}
+                                                            className="flex items-center gap-1.5 md:block px-3 py-1.5 md:p-0 rounded-lg md:rounded-none bg-red-900/20 md:bg-transparent text-red-500 hover:text-red-400 transition-colors ml-2 cursor-pointer"
+                                                            title="Excluir"
+                                                        >
+                                                            <span className="material-symbols-outlined text-lg opacity-80">
+                                                                delete
+                                                            </span>
+                                                            <span className="md:hidden text-xs font-bold">Excluir</span>
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {carga.status === "processando" && (
+                                                    <>
+                                                        <span className="material-symbols-outlined text-amber-400 animate-spin-slow text-lg">
+                                                            sync
                                                         </span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(carga.id)}
-                                                        className="text-red-500 hover:text-red-400 transition-colors ml-2 cursor-pointer"
-                                                        title="Excluir importação"
-                                                    >
-                                                        <span className="material-symbols-outlined text-lg opacity-80">
-                                                            delete
-                                                        </span>
-                                                    </button>
-                                                </>
-                                            )}
-                                            {carga.status === "falha" && (
-                                                <>
-                                                    <button
-                                                        className="text-amber-500 hover:text-amber-400 transition-colors cursor-pointer"
-                                                        title="Ver erro"
-                                                    >
-                                                        <span className="material-symbols-outlined text-lg opacity-80">
-                                                            error
-                                                        </span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(carga.id)}
-                                                        className="text-red-500 hover:text-red-400 transition-colors ml-2 cursor-pointer"
-                                                        title="Excluir"
-                                                    >
-                                                        <span className="material-symbols-outlined text-lg opacity-80">
-                                                            delete
-                                                        </span>
-                                                    </button>
-                                                </>
-                                            )}
-                                            {carga.status === "processando" && (
-                                                <>
-                                                    <span className="material-symbols-outlined text-amber-400 animate-spin-slow text-lg">
-                                                        sync
-                                                    </span>
-                                                    <button
-                                                        onClick={() => handleDelete(carga.id)}
-                                                        className="text-red-500 hover:text-red-400 transition-colors ml-2 cursor-pointer"
-                                                        title="Cancelar / Excluir"
-                                                    >
-                                                        <span className="material-symbols-outlined text-lg opacity-80">
-                                                            cancel
-                                                        </span>
-                                                    </button>
-                                                </>
-                                            )}
+                                                        <button
+                                                            onClick={() => handleDelete(carga.id)}
+                                                            className="flex items-center gap-1.5 md:block px-3 py-1.5 md:p-0 rounded-lg md:rounded-none bg-red-900/20 md:bg-transparent text-red-500 hover:text-red-400 transition-colors ml-2 cursor-pointer"
+                                                            title="Cancelar / Excluir"
+                                                        >
+                                                            <span className="material-symbols-outlined text-lg opacity-80">
+                                                                cancel
+                                                            </span>
+                                                            <span className="md:hidden text-xs font-bold">Cancelar</span>
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 );
@@ -465,8 +480,8 @@ function HistoryTable({
 
             {/* Pagination */}
             {totalPages > 0 && (
-                <div className="p-6 border-t border-slate-800 flex items-center justify-between">
-                    <p className="text-sm text-slate-500">
+                <div className="p-4 md:p-6 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <p className="text-xs md:text-sm text-slate-500 text-center md:text-left">
                         Mostrando {cargas.length} de {totalCount} arquivos carregados
                     </p>
                     <div className="flex items-center gap-2">

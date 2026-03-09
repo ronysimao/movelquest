@@ -38,7 +38,14 @@ Centralizar dados heterogêneos de fornecedores de móveis para consulta rápida
 
 - **Input de Busca Geral (Nome/Marca)**: Filtra os resultados da busca em tempo real conforme digitação.
 - **Select de Cor**: Exibe opções de cores disponíveis na base de dados.
-- **Filtros de Medidas**: Filtra móveis por dimensões específicas (Altura, Largura, Profundidade).
-- **Checkbox Multi-seleção de Opcionais**: Aplica filtros de opcionais e modelos.
 - **Lista de Resultados Dinâmica**: Exibe os detalhes completos do móvel selecionado em um modal ou expansão.
+
+## Requisitos Não Funcionais (UI/UX)
+
+- **Design System Moderno**: Uso de cores Dark (Slate/Indigo), tipografia forte, botões arredondados com hover progressivo, e cursores explícitos (`cursor: pointer`) para todos os elementos interativos.
+- **Responsividade Total (Mobile-First)**:
+    - **A aba de Busca (`/search`)** e **A aba Admin (`/admin`)** devem ser perfeitamente utilizáveis via dispositivos móveis.
+    - Sidebars devem virar gavetas ou *overlays* no celular.
+    - Tabelas espalhadas (histórico, listagem de upload) e painéis de filtros devem possuir *scroll* horizontal ou amontoar flexivelmente (stacks) em telas pequenas.
+
 
