@@ -25,6 +25,7 @@ export async function GET(request: Request) {
         const alturaMax = searchParams.get("altura_max");
         const larguraMax = searchParams.get("largura_max");
         const comprimentoMax = searchParams.get("comprimento_max");
+        const apenasComImagem = searchParams.get("apenas_com_imagem") === "true";
 
         const supabase = createServerClient();
 
@@ -75,6 +76,10 @@ export async function GET(request: Request) {
 
         if (comprimentoMax) {
             query = query.lte("comprimento_cm", parseFloat(comprimentoMax));
+        }
+
+        if (apenasComImagem) {
+            query = query.not("imagem_url", "is", null).neq("imagem_url", "");
         }
 
         // Pagination

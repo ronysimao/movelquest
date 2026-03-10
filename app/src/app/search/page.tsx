@@ -383,10 +383,27 @@ function FilterSidebar({
 }) {
     return (
         <div className={cn("space-y-6", className)}>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-                <span className="material-symbols-outlined text-lg">filter_list</span>
-                Filtros de Busca
-            </h2>
+            <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">filter_list</span>
+                    Filtros
+                </h2>
+                
+                {/* Image Toggle */}
+                <button
+                    onClick={() => onFilterChange("apenas_com_imagem", filters.apenas_com_imagem ? "" : "true")}
+                    className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all border cursor-pointer",
+                        filters.apenas_com_imagem 
+                            ? "bg-primary/20 border-primary text-primary" 
+                            : "bg-slate-800/50 border-slate-700 text-slate-500 hover:border-slate-500"
+                    )}
+                    title="Mostrar apenas itens com foto"
+                >
+                    <span className="material-symbols-outlined text-base">image</span>
+                    FOTOS
+                </button>
+            </div>
 
             {/* Text search */}
             <div>
@@ -512,6 +529,7 @@ interface FilterState {
     altura_max: string;
     largura_max: string;
     comprimento_max: string;
+    apenas_com_imagem: boolean;
 }
 
 const INITIAL_FILTERS: FilterState = {
@@ -521,6 +539,7 @@ const INITIAL_FILTERS: FilterState = {
     altura_max: "",
     largura_max: "",
     comprimento_max: "",
+    apenas_com_imagem: false,
 };
 
 // ============================================
@@ -588,6 +607,8 @@ export default function SearchPage() {
             if (filters.largura_max) params.set("largura_max", filters.largura_max);
             if (filters.comprimento_max)
                 params.set("comprimento_max", filters.comprimento_max);
+            if (filters.apenas_com_imagem)
+                params.set("apenas_com_imagem", "true");
 
             const res = await fetch(`/api/moveis?${params}`);
             if (res.ok) {
@@ -616,7 +637,11 @@ export default function SearchPage() {
     }, [filters.busca]);
 
     const handleFilterChange = (key: string, value: string) => {
-        setFilters((prev) => ({ ...prev, [key]: value }));
+        if (key === "apenas_com_imagem") {
+            setFilters((prev) => ({ ...prev, apenas_com_imagem: value === "true" }));
+        } else {
+            setFilters((prev) => ({ ...prev, [key]: value }));
+        }
         if (key !== "busca") setPage(1);
     };
 
