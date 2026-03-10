@@ -99,6 +99,104 @@ function ProductCard({
 }
 
 // ============================================
+// UI Components: Toast and Confirm Modal
+// ============================================
+function Toast({ 
+    message, 
+    type = "success", 
+    onClose 
+}: { 
+    message: string; 
+    type?: "success" | "error" | "info"; 
+    onClose: () => void; 
+}) {
+    useEffect(() => {
+        const timer = setTimeout(onClose, 3000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    const icons = {
+        success: "check_circle",
+        error: "error",
+        info: "info"
+    };
+
+    const colors = {
+        success: "bg-emerald-500/10 border-emerald-500/50 text-emerald-400",
+        error: "bg-red-500/10 border-red-500/50 text-red-400",
+        info: "bg-primary/10 border-primary/50 text-primary"
+    };
+
+    return (
+        <div className={cn(
+            "fixed bottom-6 right-6 z-[200] flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-md shadow-2xl animate-slide-up",
+            colors[type]
+        )}>
+            <span className="material-symbols-outlined">{icons[type]}</span>
+            <span className="text-sm font-bold">{message}</span>
+            <button onClick={onClose} className="ml-2 hover:opacity-70 cursor-pointer">
+                <span className="material-symbols-outlined text-sm">close</span>
+            </button>
+        </div>
+    );
+}
+
+function ConfirmModal({
+    title,
+    message,
+    confirmLabel = "Confirmar",
+    cancelLabel = "Cancelar",
+    onConfirm,
+    onCancel,
+    type = "danger"
+}: {
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+    type?: "danger" | "info";
+}) {
+    return (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fade-in" onClick={onCancel}>
+            <div 
+                className="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl shadow-2xl p-6 animate-slide-up"
+                onClick={e => e.stopPropagation()}
+            >
+                <div className={cn(
+                    "w-12 h-12 rounded-full mb-4 flex items-center justify-center",
+                    type === "danger" ? "bg-red-500/20 text-red-500" : "bg-primary/20 text-primary"
+                )}>
+                    <span className="material-symbols-outlined text-2xl">
+                        {type === "danger" ? "delete_forever" : "help"}
+                    </span>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+                <p className="text-slate-400 text-sm mb-6 leading-relaxed">{message}</p>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={onCancel}
+                        className="flex-1 px-4 py-2.5 rounded-lg border border-slate-700 text-slate-400 font-bold text-sm hover:bg-slate-800 transition-all cursor-pointer"
+                    >
+                        {cancelLabel}
+                    </button>
+                    <button 
+                        onClick={onConfirm}
+                        className={cn(
+                            "flex-1 px-4 py-2.5 rounded-lg text-white font-bold text-sm transition-all cursor-pointer",
+                            type === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primary/90"
+                        )}
+                    >
+                        {confirmLabel}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ============================================
 // Product Detail Modal
 // ============================================
 function ProductModal({
@@ -106,11 +204,15 @@ function ProductModal({
     onClose,
     user,
     onUpdate,
+    showToast,
+    confirmAction,
 }: {
     movel: Movel;
     onClose: () => void;
     user: Profile | null;
     onUpdate: (updatedMovel: Movel) => void;
+    showToast: (msg: string, type?: "success" | "error") => void;
+    confirmAction: (cfg: { title: string; message: string; onConfirm: () => void }) => void;
 }) {
     const placeholderImg = "/placeholder-furniture.jpg";
     const imgUrl = movel.imagem_url || placeholderImg;
@@ -133,16 +235,43 @@ function ProductModal({
             const data = await res.json();
             if (data.success && data.imagem_url) {
                 onUpdate({ ...movel, imagem_url: data.imagem_url });
-                alert("Imagem atualizada com sucesso!");
+                showToast("Imagem atualizada com sucesso!", "success");
             } else {
-                alert(data.error || "Erro ao atualizar a imagem");
+                showToast(data.error || "Erro ao atualizar a imagem", "error");
             }
         } catch (error) {
             console.error(error);
-            alert("Erro interno ao enviar a imagem");
+            showToast("Erro interno ao enviar a imagem", "error");
         } finally {
             setIsUploading(false);
         }
+    };
+
+    const handleRemoveImage = async () => {
+        confirmAction({
+            title: "Remover Imagem",
+            message: "Tem certeza que deseja remover permanentemente a imagem deste móvel?",
+            onConfirm: async () => {
+                setIsUploading(true);
+                try {
+                    const res = await fetch(`/api/moveis/upload-image?movel_id=${movel.id}`, {
+                        method: "DELETE",
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        onUpdate({ ...movel, imagem_url: undefined });
+                        showToast("Imagem removida com sucesso!", "success");
+                    } else {
+                        showToast(data.error || "Erro ao remover a imagem", "error");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    showToast("Erro interno ao remover a imagem", "error");
+                } finally {
+                    setIsUploading(false);
+                }
+            }
+        });
     };
 
     // Prevent body scroll when modal is open
@@ -195,20 +324,32 @@ function ProductModal({
                     )}
 
                     {user?.perfil === "admin" && (
-                        <label className="absolute bottom-4 right-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 hover:bg-slate-800 hover:border-primary transition-all text-white p-3 rounded-full shadow-xl flex items-center justify-center cursor-pointer z-20 group/upload" title="Alterar Imagem">
-                            <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={handleImageUpload}
-                                disabled={isUploading}
-                            />
-                            {isUploading ? (
-                                <span className="material-symbols-outlined text-primary animate-spin-slow">sync</span>
-                            ) : (
-                                <span className="material-symbols-outlined text-white group-hover/upload:text-primary transition-colors">edit_square</span>
+                        <div className="absolute bottom-4 right-4 flex gap-2 z-20">
+                            <label className="bg-slate-900/80 backdrop-blur-md border border-slate-700 hover:bg-slate-800 hover:border-primary transition-all text-white p-3 rounded-full shadow-xl flex items-center justify-center cursor-pointer group/upload" title="Alterar Imagem">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleImageUpload}
+                                    disabled={isUploading}
+                                />
+                                {isUploading ? (
+                                    <span className="material-symbols-outlined text-primary animate-spin-slow">sync</span>
+                                ) : (
+                                    <span className="material-symbols-outlined text-white group-hover/upload:text-primary transition-colors">edit_square</span>
+                                )}
+                            </label>
+                            {movel.imagem_url && (
+                                <button
+                                    onClick={handleRemoveImage}
+                                    disabled={isUploading}
+                                    className="bg-slate-900/80 backdrop-blur-md border border-slate-700 hover:bg-red-500/20 hover:border-red-500 transition-all text-white p-3 rounded-full shadow-xl flex items-center justify-center cursor-pointer group/remove"
+                                    title="Remover Imagem"
+                                >
+                                    <span className="material-symbols-outlined text-white group-hover/remove:text-red-500 transition-colors">delete</span>
+                                </button>
                             )}
-                        </label>
+                        </div>
                     )}
                 </div>
 
@@ -562,6 +703,18 @@ export default function SearchPage() {
     const [selectedMovel, setSelectedMovel] = useState<Movel | null>(null);
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
+    // Feedback states
+    const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+    const [confirmModal, setConfirmModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+
+    const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
+        setToast({ message, type });
+    };
+
+    const confirmAction = (config: { title: string; message: string; onConfirm: () => void }) => {
+        setConfirmModal(config);
+    };
+
     // Fetch user
     useEffect(() => {
         (async () => {
@@ -889,6 +1042,29 @@ export default function SearchPage() {
                             )
                         );
                     }}
+                    showToast={showToast}
+                    confirmAction={confirmAction}
+                />
+            )}
+
+            {/* Feedback UI */}
+            {toast && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast(null)} 
+                />
+            )}
+            
+            {confirmModal && (
+                <ConfirmModal
+                    title={confirmModal.title}
+                    message={confirmModal.message}
+                    onConfirm={() => {
+                        confirmModal.onConfirm();
+                        setConfirmModal(null);
+                    }}
+                    onCancel={() => setConfirmModal(null)}
                 />
             )}
         </div>
