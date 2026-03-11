@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
             .from("cargas")
             .insert({
                 nome_arquivo: file.name,
+                storage_path: storagePath, // Salvando o caminho para exclusão futura
                 status: "processando",
                 registros_processados: 0,
                 usuario_id: session.id,

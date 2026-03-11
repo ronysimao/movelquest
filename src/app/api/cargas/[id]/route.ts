@@ -45,12 +45,18 @@ export async function DELETE(
             return NextResponse.json({ error: "Erro ao excluir carga" }, { status: 500 });
         }
 
-        // 3. Try to delete the file from Storage (fire and forget)
-        // We do this after DB deletion so the UI updates immediately
-        if (carga.nome_arquivo) {
-            // Reconstruct storage path from original logic or search
-            // In a better design, we'd store the storage_path in the table, but let's guess it base on normal upload flow if needed.
-            // Actually, we can list files with similar names or just rely on manual cleanup later if needed.
+        // 3. Delete the file from Storage
+        if (carga.storage_path) {
+            console.log(`Deleting storage file: ${carga.storage_path}`);
+            const { error: storageError } = await supabase.storage
+                .from("cargas")
+                .remove([carga.storage_path]);
+            
+            if (storageError) {
+                console.error("Error deleting storage file:", storageError);
+                // We continue since the DB record is already gone, 
+                // but we log it for admin investigation.
+            }
         }
 
         return NextResponse.json({
