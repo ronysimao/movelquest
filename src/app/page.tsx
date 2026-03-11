@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -45,31 +46,42 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-8 relative bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: 'url("/assets/fundo.png")' }}
+    >
+      {/* Escurecimento sutil do fundo para garantir contraste */}
+      <div className="absolute inset-0 bg-slate-900/60" />
+
+      <div className="w-full max-w-md relative z-10">
         {/* Logo and Branding */}
         <div className="flex flex-col items-center mb-10">
-          <div className="bg-primary/10 p-3 rounded-xl mb-4">
+          {/* <div className="bg-primary/10 p-3 rounded-xl mb-4">
             <span className="material-icons-round text-primary text-4xl">
               chair
             </span>
-          </div>
+          </div> */}
           <h1 className="text-3xl font-extrabold tracking-tight text-white">
             Móvel<span className="text-primary">Quest</span>
           </h1>
-          <p className="text-slate-400 mt-2 text-center">
+          <p className="text-slate-200 font-medium mt-2 text-center drop-shadow-sm">
             Gestão inteligente para sua fábrica de móveis
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl shadow-xl overflow-hidden">
+        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden">
           {/* Decorative Header */}
-          <div className="h-28 w-full bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20 relative">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-primary font-bold opacity-20 text-3xl select-none tracking-widest">
-                MÓVELQUEST
-              </span>
+          <div className="h-28 w-full bg-slate-800/40 flex items-center justify-center gap-3 border-b border-slate-700/50 group">
+            <span className="text-slate-400 text-xs font-medium ml-2">by</span>
+            <div className="relative w-48 h-14 transition-transform duration-500 group-hover:scale-105">
+              <Image
+                src="/assets/ASISTO-H-AZUL-BRANCO.png"
+                alt="Asisto Logo"
+                fill
+                className="object-contain"
+                priority
+              />
             </div>
           </div>
 
@@ -190,27 +202,26 @@ export default function LoginPage() {
 
             <div className="mt-8 pt-6 border-t border-slate-700/50 flex flex-col items-center gap-4">
               <p className="text-sm text-slate-400">Não possui uma conta?</p>
-              <button className="text-sm font-bold text-primary border border-primary/20 bg-primary/5 px-6 py-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
+              {/* <button className="text-sm font-bold text-primary border border-primary/20 bg-primary/5 px-6 py-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
                 Solicitar acesso à plataforma
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <footer className="mt-12 text-center space-y-2">
-          <p className="text-xs text-slate-500">
-            © 2025 MóvelQuest Sistemas de Gestão. Todos os direitos reservados.
+        <footer className="mt-12 text-center space-y-3">
+          <p className="text-sm text-slate-200 font-semibold drop-shadow-sm">
+            © 2026 MóvelQuest Sistemas de Gestão. Todos os direitos reservados.
           </p>
-          <div className="flex justify-center gap-4 text-xs text-slate-600">
+          <div className="flex justify-center gap-4 text-xs text-slate-300 font-medium bg-slate-900/40 backdrop-blur-sm py-2 px-4 rounded-full w-fit mx-auto border border-white/5">
             <a className="hover:text-primary transition-colors cursor-pointer" href="#">
               Termos de Uso
             </a>
-            <span>•</span>
+            <span className="text-slate-500">•</span>
             <a className="hover:text-primary transition-colors cursor-pointer" href="#">
               Privacidade
             </a>
-            <span>•</span>
+            <span className="text-slate-500">•</span>
             <a className="hover:text-primary transition-colors cursor-pointer" href="#">
               Suporte
             </a>
