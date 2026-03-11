@@ -1,5 +1,5 @@
 // ============================================
-// MóvelQuest - Utility Functions
+// CATÁLOGO DE PRODUTOS - Utility Functions
 // ============================================
 
 /**

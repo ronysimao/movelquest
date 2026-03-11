@@ -88,7 +88,7 @@ export default function AdminLayout({
                     {sidebarOpen && (
                         <div className="animate-fade-in">
                             <h1 className="text-base font-bold leading-tight text-white">
-                                MóvelQuest
+                                CATÁLOGO DE PRODUTOS
                             </h1>
                             <p className="text-xs text-slate-400">Admin Console</p>
                         </div>

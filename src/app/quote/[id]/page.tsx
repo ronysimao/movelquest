@@ -146,7 +146,7 @@ export default function QuotePage({
                             </div>
                             <div>
                                 <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white uppercase">
-                                    MóvelQuest
+                                    CATÁLOGO DE PRODUTOS
                                 </h1>
                                 <p className="text-xs font-semibold text-primary uppercase tracking-widest">
                                     Soluções Premium em Móveis
@@ -428,7 +428,7 @@ export default function QuotePage({
                     </div>
                     <div className="mt-8 text-center">
                         <p className="text-[9px] text-slate-400 dark:text-slate-600">
-                            MóvelQuest Soluções em Móveis LTDA | CNPJ: 12.345.678/0001-99 |
+                            CATÁLOGO DE PRODUTOS Soluções em Móveis LTDA | CNPJ: 12.345.678/0001-99 |
                             Obrigado por escolher nossos móveis de qualidade.
                         </p>
                     </div>

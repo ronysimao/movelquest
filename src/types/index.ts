@@ -1,5 +1,5 @@
 // ============================================
-// MóvelQuest - Type Definitions
+// CATÁLOGO DE PRODUTOS - Type Definitions
 // ============================================
 
 export type UserProfile = "admin" | "vendedor";

@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MóvelQuest - Agregador de Móveis",
-  description:
-    "Gestão inteligente para consulta e gerenciamento de móveis. Centralize dados de fornecedores e facilite a busca para vendedores.",
+  title: "CATÁLOGO DE PRODUTOS - Agregador de Móveis",
+  description: "Sistema de gestão e catálogo para fábricas de móveis",
 };
 
 export default function RootLayout({
