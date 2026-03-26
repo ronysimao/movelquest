@@ -249,7 +249,8 @@ function ConfirmModal({
     cancelLabel = "Cancelar",
     onConfirm,
     onCancel,
-    type = "danger"
+    type = "danger",
+    icon
 }: {
     title: string;
     message: string;
@@ -257,8 +258,15 @@ function ConfirmModal({
     cancelLabel?: string;
     onConfirm: () => void;
     onCancel: () => void;
-    type?: "danger" | "info";
+    type?: "danger" | "info" | "success";
+    icon?: string;
 }) {
+    const isDanger = type === "danger";
+    const isSuccess = type === "success";
+    
+    // Default icons
+    const renderIcon = icon || (isDanger ? "delete_forever" : (isSuccess ? "check_circle" : "info"));
+
     return (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fade-in" onClick={onCancel}>
             <div 
@@ -267,10 +275,10 @@ function ConfirmModal({
             >
                 <div className={cn(
                     "w-12 h-12 rounded-full mb-4 flex items-center justify-center",
-                    type === "danger" ? "bg-red-500/20 text-red-500" : "bg-primary/20 text-primary"
+                    isDanger ? "bg-red-500/20 text-red-500" : (isSuccess ? "bg-emerald-500/20 text-emerald-500" : "bg-primary/20 text-primary")
                 )}>
                     <span className="material-symbols-outlined text-2xl">
-                        {type === "danger" ? "delete_forever" : "help"}
+                        {renderIcon}
                     </span>
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
@@ -286,7 +294,7 @@ function ConfirmModal({
                         onClick={onConfirm}
                         className={cn(
                             "flex-1 px-4 py-2.5 rounded-lg text-white font-bold text-sm transition-all cursor-pointer",
-                            type === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primary/90"
+                            isDanger ? "bg-red-600 hover:bg-red-700" : (isSuccess ? "bg-emerald-600 hover:bg-emerald-700" : "bg-primary hover:bg-primary/90")
                         )}
                     >
                         {confirmLabel}
@@ -314,12 +322,13 @@ function ProductModal({
     user: Profile | null;
     onUpdate: (updatedMovel: Movel) => void;
     showToast: (msg: string, type?: "success" | "error") => void;
-    confirmAction: (cfg: { title: string; message: string; onConfirm: () => void }) => void;
-    onAddToCart: (movel: Movel) => void;
+    confirmAction: (cfg: { title: string; message: string; onConfirm: () => void; type?: "danger"|"info"|"success"; icon?: string; }) => void;
+    onAddToCart: (movel: Movel, qty: number) => void;
 }) {
     const placeholderImg = "/placeholder-furniture.jpg";
     const imgUrl = movel.imagem_url || placeholderImg;
     const [isUploading, setIsUploading] = useState(false);
+    const [qty, setQty] = useState(1);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -590,12 +599,33 @@ function ProductModal({
                         </div>
                     )}
 
+                    {/* Quantity Selector */}
+                    <div className="mb-6 mt-4 sm:mt-0 bg-slate-800/50 p-4 rounded-xl flex items-center justify-between border border-slate-700/50">
+                        <span className="text-sm font-bold text-slate-300">Quantidade</span>
+                        <div className="flex items-center gap-4 bg-slate-900 rounded-lg p-1.5 border border-slate-700">
+                            <button 
+                                onClick={() => setQty(Math.max(1, qty - 1))}
+                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors cursor-pointer"
+                            >
+                                <span className="material-symbols-outlined text-sm">remove</span>
+                            </button>
+                            <span className="text-lg font-bold w-8 text-center text-white">{qty}</span>
+                            <button 
+                                onClick={() => setQty(qty + 1)}
+                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors cursor-pointer"
+                            >
+                                <span className="material-symbols-outlined text-sm">add</span>
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Actions */}
                     <div className="mt-auto flex gap-3">
                         <button 
                             onClick={() => {
-                                onAddToCart(movel);
-                                showToast("Móvel adicionado ao pedido!", "success");
+                                onAddToCart(movel, qty);
+                                showToast(`${qty} ${qty === 1 ? 'móvel adicionado' : 'móveis adicionados'} ao pedido!`, "success");
+                                onClose();
                             }}
                             className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/30 transition-all cursor-pointer"
                         >
@@ -819,13 +849,13 @@ export default function SearchPage() {
 
     // Feedback states
     const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
-    const [confirmModal, setConfirmModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+    const [confirmModal, setConfirmModal] = useState<{ title: string; message: string; onConfirm: () => void; type?: "danger"|"info"|"success"; icon?: string; } | null>(null);
 
     const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
         setToast({ message, type });
     };
 
-    const confirmAction = (config: { title: string; message: string; onConfirm: () => void }) => {
+    const confirmAction = (config: { title: string; message: string; onConfirm: () => void; type?: "danger"|"info"|"success"; icon?: string; }) => {
         setConfirmModal(config);
     };
 
@@ -918,13 +948,13 @@ export default function SearchPage() {
     };
 
     // Cart Handlers
-    const handleAddToCart = (movel: Movel) => {
+    const handleAddToCart = (movel: Movel, qty: number = 1) => {
         setCart(prev => {
             const existing = prev.find(item => item.movel.id === movel.id);
             if (existing) {
-                return prev.map(item => item.movel.id === movel.id ? { ...item, quantidade: item.quantidade + 1 } : item);
+                return prev.map(item => item.movel.id === movel.id ? { ...item, quantidade: item.quantidade + qty } : item);
             }
-            return [...prev, { movel, quantidade: 1 }];
+            return [...prev, { movel, quantidade: qty }];
         });
     };
 
@@ -963,11 +993,13 @@ export default function SearchPage() {
                 
                 // Show order link in confirm modal
                 confirmAction({
-                    title: "Pedido Gerado!",
-                    message: `O pedido ${data.orcamento.numero} foi gerado com sucesso. Clique em Confirmar para acessar a página do pedido ou copie a URL: /quote/${data.orcamento.numero}`,
+                    title: "Pedido Gerado com Sucesso!",
+                    message: `O pedido ${data.orcamento.numero} foi gerado. Clique no botão abaixo para acessar a página pública do pedido, ou clique em Cancelar para fechar.`,
                     onConfirm: () => {
                         window.open(`/quote/${data.orcamento.numero}`, '_blank');
-                    }
+                    },
+                    type: "info",
+                    icon: "check_circle"
                 });
             } else {
                 showToast(data.error || "Erro ao gerar pedido", "error");
@@ -1007,6 +1039,12 @@ export default function SearchPage() {
                                 href="/search"
                             >
                                 Pesquisa
+                            </a>
+                            <a
+                                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+                                href="/orders"
+                            >
+                                Meus Pedidos
                             </a>
                             {user?.perfil === "admin" && (
                                 <a
@@ -1262,6 +1300,8 @@ export default function SearchPage() {
                 <ConfirmModal
                     title={confirmModal.title}
                     message={confirmModal.message}
+                    type={confirmModal.type}
+                    icon={confirmModal.icon}
                     onConfirm={() => {
                         confirmModal.onConfirm();
                         setConfirmModal(null);
