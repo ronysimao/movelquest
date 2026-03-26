@@ -61,8 +61,8 @@ export default function LoginPage() {
               chair
             </span>
           </div> */}
-          <h1 className="text-3xl font-extrabold tracking-tight text-white uppercase">
-            Catálogo de <span className="text-primary">Produtos</span>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white">
+            Móvel<span className="text-primary">Quest</span>
           </h1>
           <p className="text-slate-200 font-medium mt-2 text-center drop-shadow-sm">
             Gestão inteligente para sua fábrica de móveis
@@ -211,7 +211,7 @@ export default function LoginPage() {
 
         <footer className="mt-12 text-center space-y-3">
           <p className="text-sm text-slate-200 font-semibold drop-shadow-sm">
-            © 2026 CATÁLOGO DE PRODUTOS Sistemas de Gestão. Todos os direitos reservados.
+            © 2026 MóvelQuest Sistemas de Gestão. Todos os direitos reservados.
           </p>
           <div className="flex justify-center gap-4 text-xs text-slate-300 font-medium bg-slate-900/40 backdrop-blur-sm py-2 px-4 rounded-full w-fit mx-auto border border-white/5">
             <a className="hover:text-primary transition-colors cursor-pointer" href="#">

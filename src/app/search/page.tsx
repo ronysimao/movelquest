@@ -99,6 +99,107 @@ function ProductCard({
 }
 
 // ============================================
+// Cart Sidebar Component
+// ============================================
+function CartSidebar({
+    cart,
+    onClose,
+    onUpdateQuantity,
+    onRemoveItem,
+    onCheckout,
+    isSubmitting
+}: {
+    cart: { movel: Movel; quantidade: number }[];
+    onClose: () => void;
+    onUpdateQuantity: (movelId: number, delta: number) => void;
+    onRemoveItem: (movelId: number) => void;
+    onCheckout: () => void;
+    isSubmitting: boolean;
+}) {
+    const total = cart.reduce((sum, item) => sum + item.movel.preco * item.quantidade, 0);
+
+    return (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[200] flex justify-end animate-fade-in" onClick={onClose}>
+            <div 
+                className="w-full max-w-md bg-slate-900 h-full flex flex-col border-l border-slate-800 shadow-2xl animate-slide-left"
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900 z-10">
+                    <h2 className="text-xl font-bold flex items-center gap-2 text-white">
+                        <span className="material-symbols-outlined text-primary">shopping_cart</span>
+                        Meu Pedido
+                    </h2>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors cursor-pointer">
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    {cart.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-slate-500 text-center">
+                            <span className="material-symbols-outlined text-5xl mb-4 opacity-50">remove_shopping_cart</span>
+                            <p>Seu pedido está vazio.</p>
+                        </div>
+                    ) : (
+                        cart.map((item) => (
+                            <div key={item.movel.id} className="flex gap-4 bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                                <div 
+                                    className="w-20 h-20 bg-slate-800 rounded-lg bg-cover bg-center shrink-0" 
+                                    style={{ backgroundImage: `url(${item.movel.imagem_url || '/placeholder-furniture.jpg'})` }} 
+                                />
+                                <div className="flex-1 min-w-0 flex flex-col">
+                                    <p className="text-sm font-bold text-white truncate">{item.movel.modelo}</p>
+                                    <p className="text-xs text-slate-400 truncate mb-1">{item.movel.variante || item.movel.categoria}</p>
+                                    <div className="mt-auto flex items-center justify-between">
+                                        <p className="text-sm font-bold text-primary">{formatCurrency(item.movel.preco)}</p>
+                                        <div className="flex items-center gap-2 bg-slate-900 rounded-lg p-1">
+                                            <button 
+                                                onClick={() => item.quantidade === 1 ? onRemoveItem(item.movel.id) : onUpdateQuantity(item.movel.id, -1)}
+                                                className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors cursor-pointer"
+                                            >
+                                                <span className="material-symbols-outlined text-sm">{item.quantidade === 1 ? 'delete' : 'remove'}</span>
+                                            </button>
+                                            <span className="text-xs font-bold w-4 text-center text-white">{item.quantidade}</span>
+                                            <button 
+                                                onClick={() => onUpdateQuantity(item.movel.id, 1)}
+                                                className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors cursor-pointer"
+                                            >
+                                                <span className="material-symbols-outlined text-sm">add</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {cart.length > 0 && (
+                    <div className="p-6 border-t border-slate-800 bg-slate-900">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-slate-400">Total</span>
+                            <span className="text-2xl font-black text-white">{formatCurrency(total)}</span>
+                        </div>
+                        <button 
+                            onClick={onCheckout}
+                            disabled={isSubmitting}
+                            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isSubmitting ? (
+                                <span className="material-symbols-outlined animate-spin-slow">sync</span>
+                            ) : (
+                                <span className="material-symbols-outlined">send</span>
+                            )}
+                            Gerar Pedido e Link
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ============================================
 // UI Components: Toast and Confirm Modal
 // ============================================
 function Toast({ 
@@ -148,7 +249,8 @@ function ConfirmModal({
     cancelLabel = "Cancelar",
     onConfirm,
     onCancel,
-    type = "danger"
+    type = "danger",
+    icon
 }: {
     title: string;
     message: string;
@@ -156,8 +258,15 @@ function ConfirmModal({
     cancelLabel?: string;
     onConfirm: () => void;
     onCancel: () => void;
-    type?: "danger" | "info";
+    type?: "danger" | "info" | "success";
+    icon?: string;
 }) {
+    const isDanger = type === "danger";
+    const isSuccess = type === "success";
+    
+    // Default icons
+    const renderIcon = icon || (isDanger ? "delete_forever" : (isSuccess ? "check_circle" : "info"));
+
     return (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fade-in" onClick={onCancel}>
             <div 
@@ -166,10 +275,10 @@ function ConfirmModal({
             >
                 <div className={cn(
                     "w-12 h-12 rounded-full mb-4 flex items-center justify-center",
-                    type === "danger" ? "bg-red-500/20 text-red-500" : "bg-primary/20 text-primary"
+                    isDanger ? "bg-red-500/20 text-red-500" : (isSuccess ? "bg-emerald-500/20 text-emerald-500" : "bg-primary/20 text-primary")
                 )}>
                     <span className="material-symbols-outlined text-2xl">
-                        {type === "danger" ? "delete_forever" : "help"}
+                        {renderIcon}
                     </span>
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
@@ -185,7 +294,7 @@ function ConfirmModal({
                         onClick={onConfirm}
                         className={cn(
                             "flex-1 px-4 py-2.5 rounded-lg text-white font-bold text-sm transition-all cursor-pointer",
-                            type === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primary/90"
+                            isDanger ? "bg-red-600 hover:bg-red-700" : (isSuccess ? "bg-emerald-600 hover:bg-emerald-700" : "bg-primary hover:bg-primary/90")
                         )}
                     >
                         {confirmLabel}
@@ -206,17 +315,20 @@ function ProductModal({
     onUpdate,
     showToast,
     confirmAction,
+    onAddToCart,
 }: {
     movel: Movel;
     onClose: () => void;
     user: Profile | null;
     onUpdate: (updatedMovel: Movel) => void;
     showToast: (msg: string, type?: "success" | "error") => void;
-    confirmAction: (cfg: { title: string; message: string; onConfirm: () => void }) => void;
+    confirmAction: (cfg: { title: string; message: string; onConfirm: () => void; type?: "danger"|"info"|"success"; icon?: string; }) => void;
+    onAddToCart: (movel: Movel, qty: number) => void;
 }) {
     const placeholderImg = "/placeholder-furniture.jpg";
     const imgUrl = movel.imagem_url || placeholderImg;
     const [isUploading, setIsUploading] = useState(false);
+    const [qty, setQty] = useState(1);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -487,9 +599,36 @@ function ProductModal({
                         </div>
                     )}
 
+                    {/* Quantity Selector */}
+                    <div className="mb-6 mt-4 sm:mt-0 bg-slate-800/50 p-4 rounded-xl flex items-center justify-between border border-slate-700/50">
+                        <span className="text-sm font-bold text-slate-300">Quantidade</span>
+                        <div className="flex items-center gap-4 bg-slate-900 rounded-lg p-1.5 border border-slate-700">
+                            <button 
+                                onClick={() => setQty(Math.max(1, qty - 1))}
+                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors cursor-pointer"
+                            >
+                                <span className="material-symbols-outlined text-sm">remove</span>
+                            </button>
+                            <span className="text-lg font-bold w-8 text-center text-white">{qty}</span>
+                            <button 
+                                onClick={() => setQty(qty + 1)}
+                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors cursor-pointer"
+                            >
+                                <span className="material-symbols-outlined text-sm">add</span>
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Actions */}
                     <div className="mt-auto flex gap-3">
-                        <button className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/30 transition-all cursor-pointer">
+                        <button 
+                            onClick={() => {
+                                onAddToCart(movel, qty);
+                                showToast(`${qty} ${qty === 1 ? 'móvel adicionado' : 'móveis adicionados'} ao pedido!`, "success");
+                                onClose();
+                            }}
+                            className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/30 transition-all cursor-pointer"
+                        >
                             <span className="material-symbols-outlined">shopping_cart</span>
                             Adicionar ao Pedido
                         </button>
@@ -702,16 +841,21 @@ export default function SearchPage() {
     const [totalCount, setTotalCount] = useState(0);
     const [selectedMovel, setSelectedMovel] = useState<Movel | null>(null);
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+    
+    // Cart State
+    const [cart, setCart] = useState<{ movel: Movel; quantidade: number }[]>([]);
+    const [isCartOpen, setIsCartOpen] = useState(false);
+    const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
     // Feedback states
     const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
-    const [confirmModal, setConfirmModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+    const [confirmModal, setConfirmModal] = useState<{ title: string; message: string; onConfirm: () => void; type?: "danger"|"info"|"success"; icon?: string; } | null>(null);
 
     const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
         setToast({ message, type });
     };
 
-    const confirmAction = (config: { title: string; message: string; onConfirm: () => void }) => {
+    const confirmAction = (config: { title: string; message: string; onConfirm: () => void; type?: "danger"|"info"|"success"; icon?: string; }) => {
         setConfirmModal(config);
     };
 
@@ -803,6 +947,71 @@ export default function SearchPage() {
         setPage(1);
     };
 
+    // Cart Handlers
+    const handleAddToCart = (movel: Movel, qty: number = 1) => {
+        setCart(prev => {
+            const existing = prev.find(item => item.movel.id === movel.id);
+            if (existing) {
+                return prev.map(item => item.movel.id === movel.id ? { ...item, quantidade: item.quantidade + qty } : item);
+            }
+            return [...prev, { movel, quantidade: qty }];
+        });
+    };
+
+    const handleUpdateQuantity = (movelId: number, delta: number) => {
+        setCart(prev => prev.map(item => {
+            if (item.movel.id === movelId) {
+                const newQuantity = Math.max(1, item.quantidade + delta);
+                return { ...item, quantidade: newQuantity };
+            }
+            return item;
+        }));
+    };
+
+    const handleRemoveFromCart = (movelId: number) => {
+        setCart(prev => prev.filter(item => item.movel.id !== movelId));
+    };
+
+    const handleCheckout = async () => {
+        if (cart.length === 0) return;
+        setIsSubmittingOrder(true);
+        try {
+            const body = {
+                cliente_nome: "Cliente Balcão", // Mocked for now, can be added to UI
+                itens: cart.map(c => ({ movel_id: c.movel.id, quantidade: c.quantidade }))
+            };
+            const response = await fetch("/api/orcamentos", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast("Pedido gerado com sucesso!", "success");
+                setCart([]);
+                setIsCartOpen(false);
+                
+                // Show order link in confirm modal
+                confirmAction({
+                    title: "Pedido Gerado com Sucesso!",
+                    message: `O pedido ${data.orcamento.numero} foi gerado. Clique no botão abaixo para acessar a página pública do pedido, ou clique em Cancelar para fechar.`,
+                    onConfirm: () => {
+                        window.open(`/quote/${data.orcamento.numero}`, '_blank');
+                    },
+                    type: "info",
+                    icon: "check_circle"
+                });
+            } else {
+                showToast(data.error || "Erro ao gerar pedido", "error");
+            }
+        } catch (error) {
+            console.error(error);
+            showToast("Erro de comunicação", "error");
+        } finally {
+            setIsSubmittingOrder(false);
+        }
+    };
+
     const handleLogout = async () => {
         await fetch("/api/auth/logout", { method: "POST" });
         router.push("/");
@@ -831,6 +1040,12 @@ export default function SearchPage() {
                             >
                                 Pesquisa
                             </a>
+                            <a
+                                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+                                href="/orders"
+                            >
+                                Meus Pedidos
+                            </a>
                             {user?.perfil === "admin" && (
                                 <a
                                     className="text-slate-400 hover:text-white transition-colors cursor-pointer"
@@ -842,6 +1057,18 @@ export default function SearchPage() {
                         </nav>
                         <div className="h-8 w-px bg-slate-800 hidden md:block" />
                         <div className="flex items-center gap-3">
+                            <button 
+                                onClick={() => setIsCartOpen(true)}
+                                className="relative w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 hover:text-white transition-colors cursor-pointer"
+                                title="Meu Pedido"
+                            >
+                                <span className="material-symbols-outlined">shopping_cart</span>
+                                {cart.length > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-slate-900">
+                                        {cart.length}
+                                    </span>
+                                )}
+                            </button>
                             <div className="text-right hidden sm:block">
                                 <p className="text-xs font-semibold text-white">
                                     {user?.nome || "..."}
@@ -1044,6 +1271,19 @@ export default function SearchPage() {
                     }}
                     showToast={showToast}
                     confirmAction={confirmAction}
+                    onAddToCart={handleAddToCart}
+                />
+            )}
+
+            {/* Cart Sidebar */}
+            {isCartOpen && (
+                <CartSidebar 
+                    cart={cart}
+                    onClose={() => setIsCartOpen(false)}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onRemoveItem={handleRemoveFromCart}
+                    onCheckout={handleCheckout}
+                    isSubmitting={isSubmittingOrder}
                 />
             )}
 
@@ -1060,6 +1300,8 @@ export default function SearchPage() {
                 <ConfirmModal
                     title={confirmModal.title}
                     message={confirmModal.message}
+                    type={confirmModal.type}
+                    icon={confirmModal.icon}
                     onConfirm={() => {
                         confirmModal.onConfirm();
                         setConfirmModal(null);
