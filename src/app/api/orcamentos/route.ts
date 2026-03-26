@@ -71,13 +71,13 @@ export async function POST(request: NextRequest) {
 
         const supabase = createServerClient();
 
-        // Fetch prices for all movel_ids
+        // Fetch prices and snapshot info for all movel_ids
         const movelIds = itens.map(
             (i: { movel_id: number }) => i.movel_id
         );
         const { data: moveisData, error: moveisError } = await supabase
             .from("moveis")
-            .select("id, preco, modelo, variante")
+            .select("*, fornecedor:fornecedores(nome, cod_fornecedor)")
             .in("id", movelIds);
 
         if (moveisError || !moveisData) {
@@ -144,10 +144,14 @@ export async function POST(request: NextRequest) {
                 quantidade: number;
                 preco_unitario: number;
                 subtotal: number;
-            }) => ({
-                ...item,
-                orcamento_id: orcamento.id,
-            })
+            }) => {
+                const movel = moveisData.find(m => m.id === item.movel_id);
+                return {
+                    ...item,
+                    orcamento_id: orcamento.id,
+                    snapshot: movel || {}
+                };
+            }
         );
 
         const { error: itensError } = await supabase
