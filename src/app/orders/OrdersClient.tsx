@@ -19,6 +19,7 @@ type Order = {
     created_at: string;
     valor_total: number;
     cliente_nome: string;
+    observacoes?: string;
     vendedor?: { nome: string };
     itens: OrderItem[];
 };
@@ -271,6 +272,16 @@ export default function OrdersClient({
                                                 Ver Pedido
                                             </Link>
                                         </div>
+
+                                        {order.observacoes && (
+                                            <div className="mb-6 bg-slate-900/50 rounded-xl p-4 border border-slate-800 border-l-4 border-l-primary flex gap-3 items-start">
+                                                <span className="material-symbols-outlined text-primary mt-0.5">info</span>
+                                                <div>
+                                                    <h5 className="text-xs font-bold text-slate-400 uppercase mb-1">Observações do Pedido</h5>
+                                                    <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{order.observacoes}</p>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div className="space-y-3">
                                             {order.itens.map(item => {

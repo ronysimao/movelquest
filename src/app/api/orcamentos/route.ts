@@ -45,7 +45,7 @@ export async function GET() {
 
 /**
  * POST /api/orcamentos — Create a new quote
- * Body: { cliente_nome, cliente_email?, cliente_endereco?, itens: [{ movel_id, quantidade }] }
+ * Body: { cliente_nome, cliente_email?, cliente_endereco?, observacoes?, itens: [{ movel_id, quantidade }] }
  */
 export async function POST(request: NextRequest) {
     try {
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { cliente_nome, cliente_email, cliente_endereco, itens } = body;
+        const { cliente_nome, cliente_email, cliente_endereco, observacoes, itens } = body;
 
         if (!cliente_nome || !itens || itens.length === 0) {
             return NextResponse.json(
@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
                 cliente_nome,
                 cliente_email: cliente_email || null,
                 cliente_endereco: cliente_endereco || null,
+                observacoes: observacoes || null,
                 vendedor_id: session.id,
                 valor_total: valorTotal,
             })

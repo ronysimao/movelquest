@@ -161,6 +161,20 @@ export default async function QuotePage(props: Props) {
                     </div>
                 </div>
 
+                {orcamento.observacoes && (
+                    <div className="mb-12 bg-slate-900/40 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-sm shadow-xl flex gap-4 items-start border-l-4 border-l-primary">
+                        <div className="bg-primary/20 text-primary w-10 h-10 rounded-full flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-[20px]">info</span>
+                        </div>
+                        <div>
+                            <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-2 mt-1">Observações do Pedido</h3>
+                            <p className="text-white text-base leading-relaxed whitespace-pre-wrap">
+                                {orcamento.observacoes}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Footer Total */}
                 <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 p-8 shadow-2xl backdrop-blur-xl">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />

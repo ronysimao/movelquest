@@ -113,9 +113,12 @@ function CartSidebar({
     onClose: () => void;
     onUpdateQuantity: (movelId: number, delta: number) => void;
     onRemoveItem: (movelId: number) => void;
-    onCheckout: () => void;
+    onCheckout: (clienteNome: string, observacoes: string) => void;
     isSubmitting: boolean;
 }) {
+    const [clienteNome, setClienteNome] = useState("");
+    const [observacoes, setObservacoes] = useState("");
+    
     const total = cart.reduce((sum, item) => sum + item.movel.preco * item.quantidade, 0);
 
     return (
@@ -175,15 +178,36 @@ function CartSidebar({
                 </div>
 
                 {cart.length > 0 && (
-                    <div className="p-6 border-t border-slate-800 bg-slate-900">
-                        <div className="flex justify-between items-center mb-4">
+                    <div className="p-6 border-t border-slate-800 bg-slate-900 flex flex-col gap-4">
+                        <div className="flex flex-col gap-2">
+                            <label className="text-xs font-bold text-slate-400 uppercase">Nome do Cliente (Opcional)</label>
+                            <input 
+                                type="text"
+                                value={clienteNome}
+                                onChange={e => setClienteNome(e.target.value)}
+                                placeholder="Ex: Cliente Balcão..."
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-slate-600"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-xs font-bold text-slate-400 uppercase">Observações do Pedido</label>
+                            <textarea 
+                                value={observacoes}
+                                onChange={e => setObservacoes(e.target.value)}
+                                placeholder="Ex: Entrega na parte da tarde, etc..."
+                                rows={2}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:ring-1 focus:ring-primary outline-none transition-all resize-none placeholder:text-slate-600"
+                            />
+                        </div>
+
+                        <div className="flex justify-between items-center mt-2">
                             <span className="text-slate-400">Total</span>
                             <span className="text-2xl font-black text-white">{formatCurrency(total)}</span>
                         </div>
                         <button 
-                            onClick={onCheckout}
+                            onClick={() => onCheckout(clienteNome, observacoes)}
                             disabled={isSubmitting}
-                            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mt-2"
                         >
                             {isSubmitting ? (
                                 <span className="material-symbols-outlined animate-spin-slow">sync</span>
@@ -972,12 +996,13 @@ export default function SearchPage() {
         setCart(prev => prev.filter(item => item.movel.id !== movelId));
     };
 
-    const handleCheckout = async () => {
+    const handleCheckout = async (clienteNome: string, observacoes: string) => {
         if (cart.length === 0) return;
         setIsSubmittingOrder(true);
         try {
             const body = {
-                cliente_nome: "Cliente Balcão", // Mocked for now, can be added to UI
+                cliente_nome: clienteNome.trim() || "Cliente Balcão",
+                observacoes: observacoes.trim(),
                 itens: cart.map(c => ({ movel_id: c.movel.id, quantidade: c.quantidade }))
             };
             const response = await fetch("/api/orcamentos", {
