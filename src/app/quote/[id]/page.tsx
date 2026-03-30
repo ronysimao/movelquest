@@ -5,8 +5,8 @@ import { formatCurrency, cn } from "@/lib/utils";
 type Props = { params: Promise<{ id: string }> };
 
 export const metadata = {
-    title: "Seu Pedido - MóvelQuest",
-    description: "Visualização do seu pedido de móveis na MóvelQuest."
+    title: "Seu Pedido - Asisto Fab",
+    description: "Visualização do seu pedido de móveis no Asisto Fab."
 };
 
 export default async function QuotePage(props: Props) {
@@ -59,7 +59,7 @@ export default async function QuotePage(props: Props) {
                                 <span className="material-symbols-outlined text-white text-2xl block">chair</span>
                             </div>
                             <span className="text-2xl font-extrabold tracking-tight uppercase">
-                                Móvel<span className="text-primary">Quest</span>
+                                Asisto <span className="text-primary">Fab</span>
                             </span>
                         </div>
                         <h1 className="text-slate-400 text-sm font-medium uppercase tracking-widest">Resumo do Pedido</h1>
@@ -67,7 +67,7 @@ export default async function QuotePage(props: Props) {
                             {orcamento.numero}
                         </p>
                         <p className="text-slate-400 mt-2 text-sm max-w-md line-clamp-2">
-                            Preparado por <strong className="text-white">{(orcamento.vendedor as any)?.nome || "MóvelQuest"}</strong>
+                            Preparado por <strong className="text-white">{(orcamento.vendedor as any)?.nome || "Asisto Fab"}</strong>
                         </p>
                     </div>
 
@@ -203,7 +203,7 @@ export default async function QuotePage(props: Props) {
                 {/* Branding Footer */}
                 <div className="mt-12 text-center pb-8">
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                        Gerado por MóvelQuest
+                        Gerado por Asisto Fab
                     </p>
                 </div>
             </main>

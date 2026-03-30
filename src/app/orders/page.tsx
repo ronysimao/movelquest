@@ -6,8 +6,8 @@ import { getSession } from "@/lib/auth";
 import OrdersClient from "./OrdersClient";
 
 export const metadata = {
-    title: "Meus Pedidos - MóvelQuest",
-    description: "Lista de pedidos gerados pela plataforma.",
+    title: "Meus Pedidos - Asisto Fab",
+    description: "Gerencie seus pedidos.",
 };
 
 export default async function OrdersPage() {

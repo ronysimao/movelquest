@@ -1053,9 +1053,9 @@ export default function SearchPage() {
                                 chair
                             </span>
                         </div>
-                        <span className="text-xl font-extrabold tracking-tight text-white uppercase">
-                            Móvel<span className="text-primary">Quest</span>
-                        </span>
+                            <span className="text-2xl font-extrabold tracking-tight uppercase">
+                                Asisto <span className="text-primary">Fab</span>
+                            </span>
                     </div>
                     <div className="flex items-center gap-6">
                         <nav className="hidden md:flex items-center gap-6 text-sm font-medium">

@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         const now = new Date();
         const year = now.getFullYear();
         const random = Math.floor(Math.random() * 9000) + 1000;
-        const numero = `MQ-${year}-${random}`;
+        const numero = `AS-${year}-${random}`;
 
         // Create orcamento
         const { data: orcamento, error: orcError } = await supabase
