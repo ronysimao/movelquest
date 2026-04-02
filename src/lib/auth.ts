@@ -1,14 +1,17 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
-import { createServerClient } from "./supabase";
+import { createAdminClient } from "./supabase";
 import type { Profile } from "@/types";
 
-const JWT_SECRET = new TextEncoder().encode(
-    process.env.JWT_SECRET || "movelquest-secret-change-in-production"
-);
+function getJwtSecret() {
+    if (!process.env.JWT_SECRET) {
+        throw new Error("JWT_SECRET environment variable is missing.");
+    }
+    return new TextEncoder().encode(process.env.JWT_SECRET);
+}
 
-const COOKIE_NAME = "movelquest-session";
+const COOKIE_NAME = "asisto-session";
 
 // ============================================
 // Password hashing
@@ -31,29 +34,34 @@ export async function verifyPassword(
 
 export async function createSession(profile: Profile): Promise<string> {
     const token = await new SignJWT({
-        id: profile.id,
+        id: profile.id, // Keeping for backward compatibility
+        sub: profile.id, // Required by Supabase for auth.uid()
+        role: "authenticated", // Required by Supabase for PostgREST
         email: profile.email,
         nome: profile.nome,
         perfil: profile.perfil,
+        organization_id: profile.organization_id || null,
     })
         .setProtectedHeader({ alg: "HS256" })
         .setExpirationTime("7d")
         .setIssuedAt()
-        .sign(JWT_SECRET);
+        .sign(getJwtSecret());
 
     return token;
 }
+
 
 export async function verifySession(
     token: string
 ): Promise<Profile | null> {
     try {
-        const { payload } = await jwtVerify(token, JWT_SECRET);
+        const { payload } = await jwtVerify(token, getJwtSecret());
         return {
             id: payload.id as string,
             email: payload.email as string,
             nome: payload.nome as string,
-            perfil: payload.perfil as "admin" | "vendedor",
+            perfil: payload.perfil as Profile["perfil"],
+            organization_id: (payload.organization_id as string) || undefined,
         };
     } catch {
         return null;
@@ -67,6 +75,12 @@ export async function getSession(): Promise<Profile | null> {
     return verifySession(sessionCookie.value);
 }
 
+export async function getSessionToken(): Promise<string | null> {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get(COOKIE_NAME);
+    return sessionCookie?.value || null;
+}
+
 // ============================================
 // Login / Logout
 // ============================================
@@ -75,7 +89,7 @@ export async function login(
     email: string,
     password: string
 ): Promise<{ success: boolean; profile?: Profile; error?: string }> {
-    const supabase = createServerClient();
+    const supabase = createAdminClient();
 
     // Find user by email in profiles table
     const { data: profiles, error } = await supabase
@@ -93,6 +107,10 @@ export async function login(
 
     // Verify password
     const isValid = await verifyPassword(password, profile.senha_hash);
+    
+    // Explicitly delete sensitive data before returning or logging
+    delete profile.senha_hash;
+
     if (!isValid) {
         return { success: false, error: "Credenciais inválidas" };
     }
@@ -104,6 +122,7 @@ export async function login(
             email: profile.email,
             nome: profile.nome,
             perfil: profile.perfil,
+            organization_id: profile.organization_id || undefined,
         },
     };
 }

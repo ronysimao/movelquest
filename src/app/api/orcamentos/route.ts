@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
-import { createServerClient } from "@/lib/supabase";
+import { getSession, getSessionToken } from "@/lib/auth";
+import { createAuthClient } from "@/lib/supabase";
 
 /**
  * GET /api/orcamentos — List quotes for current user
@@ -15,7 +15,15 @@ export async function GET() {
             );
         }
 
-        const supabase = createServerClient();
+        const token = await getSessionToken();
+        if (!token) {
+            return NextResponse.json(
+                { error: "Acesso não autorizado" },
+                { status: 401 }
+            );
+        }
+
+        const supabase = createAuthClient(token);
 
         const { data, error } = await supabase
             .from("orcamentos")
@@ -69,7 +77,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const supabase = createServerClient();
+        const token = await getSessionToken();
+        if (!token) {
+            return NextResponse.json(
+                { error: "Acesso não autorizado" },
+                { status: 401 }
+            );
+        }
+
+        const supabase = createAuthClient(token);
 
         // Fetch prices and snapshot info for all movel_ids
         const movelIds = itens.map(

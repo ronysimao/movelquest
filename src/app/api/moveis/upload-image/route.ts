@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { createServerClient } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const supabase = createServerClient();
+        const supabase = createAdminClient();
 
         // Sanitize file name for URL safety
         const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "");
@@ -128,7 +128,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         const movelId = parseInt(movelIdStr, 10);
-        const supabase = createServerClient();
+        const supabase = createAdminClient();
 
         // 1. Get the current image URL
         const { data: movel, error: fetchError } = await supabase

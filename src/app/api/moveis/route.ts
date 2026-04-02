@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { createServerClient } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 
 /**
  * GET /api/moveis — Search furniture with filters and pagination
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
         const comprimentoMax = searchParams.get("comprimento_max");
         const apenasComImagem = searchParams.get("apenas_com_imagem") === "true";
 
-        const supabase = createServerClient();
+        const supabase = createAdminClient();
 
         let query = supabase
             .from("moveis")

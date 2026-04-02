@@ -2,13 +2,72 @@
 // CATÁLOGO DE PRODUTOS - Type Definitions
 // ============================================
 
-export type UserProfile = "admin" | "vendedor";
+export type UserProfile =
+    | "admin"
+    | "vendedor"
+    | "fabricante_admin"
+    | "representante"
+    | "lojista"
+    | "arquiteto"
+    | "consumidor";
+
+export type ActorType =
+    | "fabricante"
+    | "representante"
+    | "lojista"
+    | "arquiteto"
+    | "consumidor";
+
+export type OrganizationType = "fabricante" | "lojista" | "representante";
 
 export interface Profile {
     id: string;
     nome: string;
     perfil: UserProfile;
     email: string;
+    organization_id?: string;
+}
+
+export interface Organization {
+    id: string;
+    name: string;
+    type: OrganizationType;
+    slug: string;
+    created_at?: string;
+}
+
+export interface ActorProfile {
+    id: string;
+    user_id: string;
+    organization_id?: string;
+    actor_type: ActorType;
+
+    // Fabricante
+    cnpj?: string;
+    razao_social?: string;
+    regiao_atuacao?: string;
+
+    // Representante
+    creci?: string;
+    fabricante_vinculado_id?: string;
+
+    // Lojista
+    loja_nome?: string;
+    endereco?: string;
+    markup_padrao?: number;
+
+    // Arquiteto
+    portfolio_url?: string;
+    especialidade?: string;
+
+    // Consumidor
+    telefone?: string;
+    endereco_entrega?: string;
+
+    // Metadados
+    ativo: boolean;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface Fornecedor {
@@ -48,6 +107,8 @@ export interface Carga {
     registros_processados: number;
     erro_mensagem?: string;
     usuario_id: string;
+    /** Quantidade de itens pendentes na fila de revisão (enriquecido pela API) */
+    revisao_pendente?: number;
 }
 
 export interface Orcamento {

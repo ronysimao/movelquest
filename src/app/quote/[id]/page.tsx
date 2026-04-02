@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createServerClient } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 import { formatCurrency, cn } from "@/lib/utils";
 
 type Props = { params: Promise<{ id: string }> };
@@ -17,7 +17,7 @@ export default async function QuotePage(props: Props) {
         redirect("/");
     }
 
-    const supabase = createServerClient();
+    const supabase = createAdminClient();
 
     // Fetch orcamento using Service Role to bypass RLS for public viewing
     const { data: orcamento, error } = await supabase

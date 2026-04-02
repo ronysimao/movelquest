@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { createServerClient } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 
 /**
  * GET /api/cargas — List load history (admin only)
  * Query params: ?page=1&pageSize=10&search=filename
+ * Returns cargas enriched with revisao_pendente count.
  */
 export async function GET(request: Request) {
     try {
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
         const pageSize = parseInt(searchParams.get("pageSize") || "10", 10);
         const search = searchParams.get("search") || "";
 
-        const supabase = createServerClient();
+        const supabase = createAdminClient();
 
         let query = supabase
             .from("cargas")
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
         const to = from + pageSize - 1;
         query = query.range(from, to);
 
-        const { data, count, error } = await query;
+        const { data: cargas, count, error } = await query;
 
         if (error) {
             console.error("Cargas fetch error:", error);
@@ -46,8 +47,24 @@ export async function GET(request: Request) {
             );
         }
 
+        // Enriquecer cada carga com a contagem de itens pendentes de revisão
+        const cargasComRevisao = await Promise.all(
+            (cargas || []).map(async (carga) => {
+                const { count: pendentes } = await supabase
+                    .from("import_review_queue")
+                    .select("*", { count: "exact", head: true })
+                    .eq("carga_id", carga.id)
+                    .eq("status", "pending");
+
+                return {
+                    ...carga,
+                    revisao_pendente: pendentes || 0,
+                };
+            })
+        );
+
         return NextResponse.json({
-            data: data || [],
+            data: cargasComRevisao,
             count: count || 0,
             page,
             pageSize,

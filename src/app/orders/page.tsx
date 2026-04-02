@@ -1,4 +1,4 @@
-import { createServerClient } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -11,7 +11,7 @@ export const metadata = {
 };
 
 export default async function OrdersPage() {
-    const supabase = createServerClient();
+    const supabase = createAdminClient();
     
     // Autenticação local
     const user = await getSession();

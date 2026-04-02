@@ -45,7 +45,7 @@ export function generateQuoteNumber(): string {
     const now = new Date();
     const year = now.getFullYear();
     const random = Math.floor(Math.random() * 9000) + 1000;
-    return `MQ-${year}-${random}`;
+    return `AS-${year}-${random}`;
 }
 
 /**

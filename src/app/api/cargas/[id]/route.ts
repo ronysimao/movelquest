@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { createServerClient } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 
 /**
  * DELETE /api/cargas/[id] — Delete a carga or cancel its processing
@@ -21,7 +21,7 @@ export async function DELETE(
             return NextResponse.json({ error: "ID inválido" }, { status: 400 });
         }
 
-        const supabase = createServerClient();
+        const supabase = createAdminClient();
 
         // 1. Get the carga first to know the storage path
         const { data: carga, error: fetchError } = await supabase

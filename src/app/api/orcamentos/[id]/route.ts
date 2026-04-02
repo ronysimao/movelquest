@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { createServerClient } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 
 /**
  * GET /api/orcamentos/[id] — Get single quote with items and movel details
@@ -19,7 +19,7 @@ export async function GET(
         }
 
         const { id } = await params;
-        const supabase = createServerClient();
+        const supabase = createAdminClient();
 
         const { data, error } = await supabase
             .from("orcamentos")

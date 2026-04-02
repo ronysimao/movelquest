@@ -20,9 +20,10 @@ function StatusBadge({ status }: { status: CargaStatus }) {
             icon: "sync",
         },
         sucesso: {
-            label: "Sucesso",
+            label: "Importado",
             bg: "bg-emerald-900/30",
             text: "text-emerald-400",
+            icon: "check_circle",
         },
         falha: {
             label: "Falha",
@@ -57,15 +58,27 @@ function StatusBadge({ status }: { status: CargaStatus }) {
     );
 }
 
+function RevisaoBadge({ count }: { count: number }) {
+    if (count === 0) return null;
+    return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-900/40 text-violet-300 border border-violet-700/50">
+            <span className="material-symbols-outlined text-sm">rate_review</span>
+            {count} p/ revisão
+        </span>
+    );
+}
+
 // ============================================
 // Upload Zone Component
 // ============================================
 function UploadZone({
     onUpload,
     uploading,
+    onInvalidFile,
 }: {
     onUpload: (file: File) => Promise<void>;
     uploading: boolean;
+    onInvalidFile?: (filename: string) => void;
 }) {
     const [dragOver, setDragOver] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -81,16 +94,36 @@ function UploadZone({
         setDragOver(false);
     }, []);
 
+    const ACCEPTED_EXTENSIONS = [".xlsx", ".csv", ".pdf"];
+
+    const isValidFile = (file: File): boolean => {
+        const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || "";
+        return ACCEPTED_EXTENSIONS.includes(ext);
+    };
+
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         setDragOver(false);
         const file = e.dataTransfer.files[0];
-        if (file) setSelectedFile(file);
-    }, []);
+        if (file) {
+            if (isValidFile(file)) {
+                setSelectedFile(file);
+            } else {
+                onInvalidFile?.(file.name);
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [onInvalidFile]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) setSelectedFile(file);
+        if (file) {
+            if (isValidFile(file)) {
+                setSelectedFile(file);
+            } else {
+                onInvalidFile?.(file.name);
+            }
+        }
     };
 
     const handleProcess = async () => {
@@ -109,6 +142,8 @@ function UploadZone({
     const getFileIcon = (type: string) => {
         if (type.includes("spreadsheet") || type.includes("excel"))
             return "table_chart";
+        if (type.includes("csv") || type.includes("comma"))
+            return "csv";
         if (type.includes("pdf")) return "picture_as_pdf";
         return "description";
     };
@@ -116,6 +151,8 @@ function UploadZone({
     const getFileIconColor = (type: string) => {
         if (type.includes("spreadsheet") || type.includes("excel"))
             return "text-emerald-400";
+        if (type.includes("csv") || type.includes("comma"))
+            return "text-blue-400";
         if (type.includes("pdf")) return "text-red-400";
         return "text-primary";
     };
@@ -143,7 +180,7 @@ function UploadZone({
                 <input
                     ref={inputRef}
                     type="file"
-                    accept=".xlsx,.xls,.pdf"
+                    accept=".xlsx,.csv,.pdf"
                     onChange={handleFileSelect}
                     onClick={(e) => { (e.target as HTMLInputElement).value = "" }}
                     className="hidden"
@@ -164,7 +201,7 @@ function UploadZone({
                     Arraste e solte seus documentos aqui
                 </h4>
                 <p className="text-sm text-slate-500 mt-1">
-                    Suporta arquivos .xlsx e .pdf (Max 50MB)
+                    Max 50MB por arquivo
                 </p>
                 <button
                     type="button"
@@ -172,6 +209,22 @@ function UploadZone({
                 >
                     Selecionar Arquivos
                 </button>
+            </div>
+
+            {/* Formatos aceitos — banner informativo */}
+            <div className="mt-4 flex items-center gap-3 px-4 py-3 bg-slate-800/40 rounded-lg border border-slate-800">
+                <span className="material-symbols-outlined text-sm text-slate-400">info</span>
+                <div className="flex-1">
+                    <p className="text-xs text-slate-400">
+                        <span className="font-semibold text-slate-300">Formatos aceitos:</span>{" "}
+                        <span className="inline-flex items-center gap-1 text-emerald-400 font-mono">.xlsx</span>{" · "}
+                        <span className="inline-flex items-center gap-1 text-blue-400 font-mono">.csv</span>{" · "}
+                        <span className="inline-flex items-center gap-1 text-red-400 font-mono">.pdf</span>
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                        Exportou do Google Sheets? Use "Arquivo → Fazer download → .xlsx" ou ".csv"
+                    </p>
+                </div>
             </div>
 
             {/* Selected file preview */}
@@ -399,23 +452,30 @@ function HistoryTable({
                                         </td>
                                         <td className="px-4 py-3 md:px-6 md:py-4 flex justify-between items-center md:table-cell border-b border-slate-700/50 md:border-0">
                                             <span className="md:hidden text-xs font-bold text-slate-500 uppercase">Status</span>
-                                            <div className="flex justify-end md:justify-start">
+                                            <div className="flex justify-end md:justify-start gap-2 flex-wrap">
                                                 <StatusBadge status={carga.status} />
+                                                {(carga.revisao_pendente ?? 0) > 0 && <RevisaoBadge count={carga.revisao_pendente!} />}
                                             </div>
                                         </td>
                                         <td className="px-4 py-4 md:px-6 md:py-4 flex justify-end md:table-cell bg-slate-900/30 md:bg-transparent items-center gap-2">
                                             <div className="flex items-center gap-3 md:justify-end w-full md:w-auto justify-end">
                                                 {carga.status === "sucesso" && (
                                                     <>
-                                                        <button
-                                                            className="flex items-center gap-1.5 md:block px-3 py-1.5 md:p-0 rounded-lg md:rounded-none bg-slate-800 md:bg-transparent text-slate-400 hover:text-primary transition-colors cursor-pointer"
-                                                            title="Ver detalhes"
+                                                        <a
+                                                            href={`/admin/revisao/${carga.id}`}
+                                                            className={cn(
+                                                                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors cursor-pointer text-xs font-bold",
+                                                                (carga.revisao_pendente ?? 0) > 0
+                                                                    ? "bg-violet-600 hover:bg-violet-500 text-white"
+                                                                    : "bg-slate-800 hover:bg-slate-700 text-slate-400"
+                                                            )}
+                                                            title="Ver fila de revisão"
                                                         >
-                                                            <span className="material-symbols-outlined text-lg opacity-60">
-                                                                visibility
+                                                            <span className="material-symbols-outlined text-lg">
+                                                                {(carga.revisao_pendente ?? 0) > 0 ? "rate_review" : "visibility"}
                                                             </span>
-                                                            <span className="md:hidden text-xs font-bold">Ver</span>
-                                                        </button>
+                                                            <span className="md:hidden">Revisar</span>
+                                                        </a>
                                                         <button
                                                             onClick={() => handleDelete(carga.id)}
                                                             className="flex items-center gap-1.5 md:block px-3 py-1.5 md:p-0 rounded-lg md:rounded-none bg-red-900/20 md:bg-transparent text-red-500 hover:text-red-400 transition-colors ml-2 cursor-pointer"
@@ -528,6 +588,8 @@ function HistoryTable({
 // ============================================
 function StatsSidebar({ cargas }: { cargas: Carga[] }) {
     const processing = cargas.filter((c) => c.status === "processando").length;
+    const pendingReview = cargas.reduce((sum, c) => sum + (c.revisao_pendente ?? 0), 0);
+    const successCount = cargas.filter((c) => c.status === "sucesso").length;
 
     return (
         <div className="space-y-6">
@@ -546,15 +608,48 @@ function StatsSidebar({ cargas }: { cargas: Carga[] }) {
                     {processing > 0 && (
                         <>
                             <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                                <div className="bg-primary h-full w-[45%] animate-pulse rounded-full" />
+                                <div
+                                    className="bg-primary h-full rounded-full"
+                                    style={{
+                                        width: "30%",
+                                        animation: "indeterminate 1.8s ease-in-out infinite",
+                                    }}
+                                />
                             </div>
+                            <style>{`
+                                @keyframes indeterminate {
+                                    0% { width: 10%; margin-left: 0; }
+                                    50% { width: 40%; margin-left: 30%; }
+                                    100% { width: 10%; margin-left: 90%; }
+                                }
+                            `}</style>
                             <p className="text-xs text-slate-500">
-                                Processamento em andamento...
+                                Processando com Gemini AI...
                             </p>
                         </>
                     )}
                     {processing === 0 && (
                         <p className="text-sm text-slate-500">Nenhum arquivo na fila</p>
+                    )}
+
+                    {/* Resumo rápido */}
+                    {(pendingReview > 0 || successCount > 0) && (
+                        <div className="pt-3 mt-3 border-t border-slate-800 space-y-2">
+                            {pendingReview > 0 && (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-violet-300">Pendentes de revisão</span>
+                                    <span className="text-xs font-bold px-2 py-0.5 bg-violet-900/30 text-violet-300 rounded">
+                                        {pendingReview} {pendingReview === 1 ? "item" : "itens"}
+                                    </span>
+                                </div>
+                            )}
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-emerald-400">Importados com sucesso</span>
+                                <span className="text-xs font-bold px-2 py-0.5 bg-emerald-900/30 text-emerald-400 rounded">
+                                    {successCount}
+                                </span>
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>
@@ -566,11 +661,11 @@ function StatsSidebar({ cargas }: { cargas: Carga[] }) {
                         <span className="material-symbols-outlined">info</span>
                     </div>
                     <div>
-                        <h4 className="font-bold text-primary">Dica do Administrador</h4>
+                        <h4 className="font-bold text-primary">Importação Inteligente</h4>
                         <p className="text-sm text-slate-400 mt-1">
-                            Certifique-se de que os arquivos XLSX usem o padrão de cabeçalho
-                            v2.0 para evitar erros de mapeamento. Consulte o manual de
-                            importação para detalhes.
+                            O Asisto Fab usa IA para mapear automaticamente as colunas do
+                            seu catálogo. Itens com baixa confiança vão para a fila de
+                            revisão manual.
                         </p>
                     </div>
                 </div>
@@ -595,9 +690,9 @@ export default function AdminPage() {
         type: "success" | "error";
     } | null>(null);
 
-    // Fetch cargas
-    const fetchCargas = useCallback(async () => {
-        setLoading(true);
+    // Fetch cargas — silent=true faz refresh sem mostrar loading (usado no polling)
+    const fetchCargas = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const params = new URLSearchParams({
                 page: page.toString(),
@@ -615,28 +710,25 @@ export default function AdminPage() {
         } catch (err) {
             console.error("Failed to fetch cargas:", err);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, [page, search]);
 
+    // Carga inicial (com loading spinner)
     useEffect(() => {
-        fetchCargas();
+        fetchCargas(false);
     }, [fetchCargas]);
 
-    // Auto-polling for processing items
+    // Auto-polling silencioso quando há itens processando (sem flickering)
     useEffect(() => {
         const hasProcessing = cargas.some((c) => c.status === "processando");
-        let timeoutId: NodeJS.Timeout;
+        if (!hasProcessing) return;
 
-        if (hasProcessing) {
-            timeoutId = setTimeout(() => {
-                fetchCargas();
-            }, 3000);
-        }
+        const intervalId = setInterval(() => {
+            fetchCargas(true);
+        }, 5000);
 
-        return () => {
-            if (timeoutId) clearTimeout(timeoutId);
-        };
+        return () => clearInterval(intervalId);
     }, [cargas, fetchCargas]);
 
     // Debounce search
@@ -730,7 +822,20 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Upload Section (2/3) */}
                 <div className="lg:col-span-2">
-                    <UploadZone onUpload={handleUpload} uploading={uploading} />
+                    <UploadZone
+                        onUpload={handleUpload}
+                        uploading={uploading}
+                        onInvalidFile={(filename) => {
+                            const ext = filename.toLowerCase().match(/\.[^.]+$/)?.[0] || "";
+                            const isXls = ext === ".xls";
+                            setToast({
+                                message: isXls
+                                    ? `O formato .xls não é suportado. Abra "${filename}" no Excel e salve como .xlsx (Arquivo → Salvar como → .xlsx) ou exporte como .csv.`
+                                    : `Formato "${ext}" não suportado. Aceitamos apenas .xlsx, .csv e .pdf.`,
+                                type: "error",
+                            });
+                        }}
+                    />
                 </div>
 
                 {/* Stats Sidebar (1/3) */}

@@ -1,18 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { createServerClient } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
+import { processarCarga } from "@/lib/carga-processor";
 
-const ALLOWED_TYPES = [
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // xlsx
-    "application/vnd.ms-excel", // xls
-    "application/pdf",
-];
+// Validação por extensão de arquivo (mais confiável que MIME type,
+// pois o browser pode enviar 'application/octet-stream' para .xlsx)
+const ALLOWED_EXTENSIONS = [".xlsx", ".csv", ".pdf"];
+
+// Mapa de MIME types esperados por extensão (para corrigir o contentType no Storage)
+const MIME_BY_EXTENSION: Record<string, string> = {
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".csv": "text/csv",
+    ".pdf": "application/pdf",
+};
 
 const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+
+function getFileExtension(filename: string): string {
+    const match = filename.toLowerCase().match(/\.[^.]+$/);
+    return match ? match[0] : "";
+}
 
 /**
  * POST /api/upload — Upload file and create a carga record
  * Body: FormData with file
+ * Validação por extensão (não por MIME type) para maior compatibilidade.
  */
 export async function POST(request: NextRequest) {
     try {
@@ -34,17 +46,18 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Validate file type
-        if (!ALLOWED_TYPES.includes(file.type)) {
+        // Validar por extensão de arquivo
+        const ext = getFileExtension(file.name);
+        if (!ALLOWED_EXTENSIONS.includes(ext)) {
             return NextResponse.json(
                 {
-                    error: "Formato de arquivo inválido. Apenas XLSX e PDF são aceitos.",
+                    error: `Formato não suportado. Aceitamos apenas .xlsx, .csv e .pdf. Você enviou: "${file.name}". Se seu arquivo for .xls, salve como .xlsx no Excel (Arquivo → Salvar como → .xlsx).`,
                 },
                 { status: 400 }
             );
         }
 
-        // Validate file size
+        // Validar tamanho
         if (file.size > MAX_SIZE) {
             return NextResponse.json(
                 { error: "Arquivo excede o limite de 50MB" },
@@ -52,18 +65,22 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const supabase = createServerClient();
+        const supabase = createAdminClient();
 
-        // Upload to Supabase Storage
+        // Usar o MIME type correto baseado na extensão (ignorar o que o browser enviou)
+        const correctMimeType = MIME_BY_EXTENSION[ext] || file.type;
+
+        // Upload para o Supabase Storage
         const timestamp = Date.now();
-        const storagePath = `uploads/${timestamp}_${file.name}`;
+        const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+        const storagePath = `uploads/${timestamp}_${safeName}`;
         const arrayBuffer = await file.arrayBuffer();
         const fileBuffer = new Uint8Array(arrayBuffer);
 
         const { error: uploadError } = await supabase.storage
             .from("cargas")
             .upload(storagePath, fileBuffer, {
-                contentType: file.type,
+                contentType: correctMimeType,
                 upsert: false,
             });
 
@@ -75,12 +92,12 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create carga record
+        // Criar registro da carga no banco
         const { data: carga, error: insertError } = await supabase
             .from("cargas")
             .insert({
                 nome_arquivo: file.name,
-                storage_path: storagePath, // Salvando o caminho para exclusão futura
+                storage_path: storagePath,
                 status: "processando",
                 registros_processados: 0,
                 usuario_id: session.id,
@@ -96,44 +113,19 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Trigger Windmill processing workflow
-        const WINDMILL_URL = process.env.WINDMILL_BASE_URL || "https://rys-wks-windmill-server.u190ym.easypanel.host";
-        console.log(`Triggering Windmill job for carga ${carga.id} at ${WINDMILL_URL}...`);
-
-        try {
-            const wmResponse = await fetch(
-                `${WINDMILL_URL}/api/w/admins/jobs/run/p/f/movelquest/process_xlsx`,
-                {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${process.env.WINDMILL_TOKEN}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-                        supabase_key: process.env.SUPABASE_SERVICE_ROLE_KEY,
-                        carga_id: carga.id,
-                        storage_path: storagePath,
-                        filename: file.name,
-                    }),
-                }
-            );
-
-            if (!wmResponse.ok) {
-                const wmError = await wmResponse.text();
-                console.error("Windmill trigger failed:", wmResponse.status, wmError);
-                // We don't fail the upload, but log the error
-            } else {
-                console.log("Windmill job triggered successfully");
-            }
-        } catch (wmErr) {
-            console.error("Error triggering Windmill:", wmErr);
-        }
+        // Acionar processamento diretamente (sem HTTP round-trip)
+        // Fire-and-forget: a promise resolve em background sem bloquear a resposta
+        console.log(`[Upload] Acionando processamento direto para carga ${carga.id}...`);
+        processarCarga(carga.id).then((result) => {
+            console.log(`[Upload] Processamento da carga ${carga.id} finalizado:`, result);
+        }).catch((err) => {
+            console.error(`[Upload] Erro no processamento da carga ${carga.id}:`, err);
+        });
 
         return NextResponse.json({
             success: true,
             carga,
-            message: "Arquivo enviado com sucesso. Processamento iniciado.",
+            message: `Arquivo "${file.name}" enviado com sucesso. Processamento iniciado.`,
         });
     } catch (error) {
         console.error("Upload error:", error);

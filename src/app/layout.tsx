@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CATÁLOGO DE PRODUTOS - Agregador de Móveis",
-  description: "Sistema de gestão e catálogo para fábricas de móveis",
+  title: "Asisto Fab - Gestão de Catálogos de Móveis",
+  description: "Plataforma inteligente de gestão e automação de catálogos para fábricas de móveis",
 };
 
 export default function RootLayout({

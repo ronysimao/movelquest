@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { createServerClient } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
 
 /**
  * GET /api/moveis/filters — Get distinct filter values (categories, fabrics, models)
@@ -15,7 +15,7 @@ export async function GET() {
             );
         }
 
-        const supabase = createServerClient();
+        const supabase = createAdminClient();
 
         // Fetch distinct categories
         const { data: catData } = await supabase
