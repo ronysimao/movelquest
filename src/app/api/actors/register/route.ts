@@ -174,9 +174,9 @@ export async function POST(request: Request) {
                 .single();
 
             if (orgError) {
-                console.error("[Register] Erro ao criar organização:", orgError.message);
+                console.error("[Register] Erro ao criar organização:", orgError);
                 return NextResponse.json(
-                    { error: "Erro ao criar organização" },
+                    { error: "Erro ao criar organização", details: orgError.message, hint: orgError.hint, code: orgError.code },
                     { status: 500 }
                 );
             }
