@@ -15,7 +15,7 @@ export const PROFILE_HOME: Record<string, string> = {
 
 // Mapa de perfil → rotas permitidas (usado pelo middleware)
 export const PROFILE_ROUTES: Record<string, string[]> = {
-    admin: ["/admin", "/search", "/painel"],
+    admin: ["/admin", "/search", "/painel", "/home", "/clientes"],
     fabricante_admin: ["/painel/fabricante", "/search"],
     representante: ["/painel/representante", "/search"],
     lojista: ["/painel/lojista", "/search", "/quote"],
