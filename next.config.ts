@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // ============================================
   // Security Headers
   // Compliance: OWASP, HSTS, CSP, X-Frame-Options

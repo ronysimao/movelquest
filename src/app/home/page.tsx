@@ -231,7 +231,7 @@ export default function HomePage() {
               <div className="bg-surface-container-low/70 backdrop-blur-md p-8 rounded-xl border border-outline-variant/10">
                 <h5 className="text-lg font-bold mb-4 text-[#EEBD8E]">Dica do Especialista AI</h5>
                 <p className="text-sm text-on-surface-variant leading-relaxed italic">
-                  "A demanda por acabamentos em nogueira aumentou 15% esta semana. Considere atualizar sua Tabela de Preços para a coleção de Inverno."
+                  &quot;A demanda por acabamentos em nogueira aumentou 15% esta semana. Considere atualizar sua Tabela de Preços para a coleção de Inverno.&quot;
                 </p>
                 <button className="mt-6 w-full py-3 text-xs font-bold uppercase tracking-widest border border-outline-variant/30 rounded hover:bg-tertiary hover:text-on-tertiary transition-all duration-300 cursor-pointer">
                   Atualizar Catálogo
