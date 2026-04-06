@@ -33,12 +33,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Redirect based on profile
-      if (data.profile.perfil === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/search");
-      }
+      // Redireciona todos os usuários para a Home
+      router.push("/home");
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {
