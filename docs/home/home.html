@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline-variant": "#50453b",
+                    "secondary-container": "#3a4a5f",
+                    "surface-variant": "#353534",
+                    "primary-fixed": "#d8e2ff",
+                    "on-secondary-fixed": "#0b1c30",
+                    "on-primary-fixed": "#001a42",
+                    "on-background": "#e5e2e1",
+                    "surface": "#131313",
+                    "error-container": "#93000a",
+                    "on-secondary": "#213145",
+                    "primary-container": "#4d8eff",
+                    "surface-dim": "#131313",
+                    "tertiary": "#eebd8e",
+                    "on-tertiary-container": "#3f2302",
+                    "on-tertiary-fixed-variant": "#61401b",
+                    "on-primary-fixed-variant": "#004395",
+                    "inverse-surface": "#e5e2e1",
+                    "on-surface-variant": "#d4c4b7",
+                    "surface-tint": "#adc6ff",
+                    "surface-container-lowest": "#0e0e0e",
+                    "on-secondary-fixed-variant": "#38485d",
+                    "on-tertiary": "#472a06",
+                    "secondary-fixed-dim": "#b7c8e1",
+                    "surface-container-high": "#2a2a2a",
+                    "secondary": "#b7c8e1",
+                    "primary": "#adc6ff",
+                    "tertiary-fixed": "#ffdcbd",
+                    "on-error-container": "#ffdad6",
+                    "error": "#ffb4ab",
+                    "tertiary-container": "#b4885d",
+                    "on-tertiary-fixed": "#2c1600",
+                    "on-error": "#690005",
+                    "on-secondary-container": "#a9bad3",
+                    "tertiary-fixed-dim": "#eebd8e",
+                    "background": "#131313",
+                    "inverse-primary": "#005ac2",
+                    "on-primary-container": "#00285d",
+                    "surface-container": "#201f1f",
+                    "outline": "#9c8e83",
+                    "surface-container-highest": "#353534",
+                    "surface-bright": "#393939",
+                    "inverse-on-surface": "#313030",
+                    "secondary-fixed": "#d3e4fe",
+                    "on-primary": "#002e6a",
+                    "surface-container-low": "#1c1b1b",
+                    "on-surface": "#e5e2e1",
+                    "primary-fixed-dim": "#adc6ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .glass-panel {
+            background: rgba(28, 27, 27, 0.7);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- NavigationDrawer (Sidebar) -->
+<aside class="hidden md:flex flex-col py-8 gap-1 h-screen w-72 fixed left-0 top-0 z-40 bg-[#1C1B1B] shadow-[32px_0_32px_rgba(0,0,0,0.08)]">
+<div class="px-8 mb-10">
+<h1 class="text-[#EEBD8E] font-black italic text-2xl tracking-tighter">Asisto Fab (AI)</h1>
+<p class="text-[10px] text-tertiary uppercase tracking-[0.2em] mt-1 opacity-60">Atelier Digital</p>
+</div>
+<nav class="flex-1 overflow-y-auto no-scrollbar flex flex-col px-4 gap-1">
+<!-- Active state manually determined as 'Orçamentos' for Dashboard view -->
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#EEBD8E] font-bold border-r-2 border-[#EEBD8E] bg-[#2A2A2A] transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined">request_quote</span>
+<span class="font-['Inter'] text-sm font-medium">Orçamentos</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined">factory</span>
+<span class="font-['Inter'] text-sm font-medium">Fábricas</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-['Inter'] text-sm font-medium">Clientes</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-['Inter'] text-sm font-medium">Produtos</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-['Inter'] text-sm font-medium">Tabela de Preço</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined">storefront</span>
+<span class="font-['Inter'] text-sm font-medium">Minhas Lojas</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-['Inter'] text-sm font-medium">Usuários</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-['Inter'] text-sm font-medium">Configurações</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined">upload_file</span>
+<span class="font-['Inter'] text-sm font-medium">Importar Catálogo</span>
+</a>
+</nav>
+<div class="px-8 mt-auto pt-6 border-t border-outline-variant/10">
+<div class="flex items-center gap-3 group cursor-pointer">
+<div class="w-10 h-10 rounded-lg overflow-hidden bg-surface-container-high border border-outline-variant/20">
+<img alt="User" class="w-full h-full object-cover" data-alt="Professional portrait of a male interior designer in a minimalist workshop environment, warm cinematic lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfxFAe18Ba7GvWohA2-hF_ZCFQZ2_Bsd6XWIfVRfDc91zS4L9RBT777gj_3KwnbKxoAHZqU-psAfm59zyFz_dePxciimyXB4L9l3onoyYovXMuyoVnMdxVxEWxJtkk6thsKhQQU8vHRS-rYN3MR5pv24OdTEt9hs2bMrriEp3DYjDzA_o4OIQWrfWYQsnKYHPypIYM3-VP_XCeYXawKTGRUKeJJJVCWj1ZTc6AyXPTRhIQNSr9WIA6JJVSQ5zc4GmHDXxT-K43IiE"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-on-surface">Ricardo Silva</span>
+<span class="text-xs text-on-surface-variant">Admin</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="md:pl-72 min-h-screen">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center px-6 h-16 fixed top-0 w-full z-30 bg-[#131313] md:w-[calc(100%-18rem)] md:left-72">
+<div class="flex items-center gap-4">
+<button class="md:hidden text-[#ADC6FF] hover:bg-[#2A2A2A] transition-colors p-2 rounded">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h2 class="font-['Inter'] tracking-tight text-xl font-bold text-[#E5E2E1] tracking-tighter">Atelier Digital</h2>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<input class="bg-surface-container-low border-none rounded px-4 py-2 text-sm w-64 focus:ring-1 focus:ring-primary placeholder:text-on-surface-variant/40" placeholder="Buscar orçamentos..." type="text"/>
+</div>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant/20">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="Small round profile avatar of a professional in a workshop setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTX7xGkQ_ff4jOnXuXR8gYqM4t7rmohBrjps63xJKcSLmWucv5w9xz_muCRepSldaDRK15Zd8R4xvcLSYY8MRhz1lPXUaWzT6kwVx3TQ_GjOw8BkP_40nv63heZT_RpNMNpZJHt9CtQwqLjAx0ctgZ3hn9FUlqYjoWgZoyagaEs7yiz0rhXyZbBlr9A4S5qay7gKc6xq0XhB9imSbncH96LgOF3sd7nQWCAm4KjNFleUfxSbDY3sWPOmKpZJhXuu24QBLJJuczF5k"/>
+</div>
+</div>
+</header>
+<section class="pt-24 pb-12 px-6 md:px-10 max-w-7xl mx-auto">
+<!-- Hero Heading Area -->
+<div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<span class="text-tertiary text-xs font-bold tracking-widest uppercase mb-2 block">Visão Geral</span>
+<h3 class="text-4xl md:text-5xl font-black text-on-surface tracking-tighter">Crafting Excellence.</h3>
+</div>
+<div class="flex gap-3">
+<button class="px-6 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold rounded flex items-center gap-2 hover:scale-95 duration-200">
+<span class="material-symbols-outlined text-sm">add</span>
+                        Novo Orçamento
+                    </button>
+</div>
+</div>
+<!-- Bento Grid Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+<!-- Vendas Totais -->
+<div class="bg-surface-container-low p-6 rounded-lg group hover:bg-surface-container-high transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 rounded bg-primary/10 text-primary">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<span class="text-[10px] font-bold text-primary px-2 py-1 bg-primary/10 rounded">Mensal</span>
+</div>
+<p class="text-on-surface-variant text-sm font-medium">Vendas Totais</p>
+<h4 class="text-3xl font-bold text-on-surface mt-1">R$ 142.400</h4>
+<div class="flex items-center gap-1 mt-4 text-[10px] text-primary">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+<span>+12.5% em relação ao mês anterior</span>
+</div>
+</div>
+<!-- Novos Leads -->
+<div class="bg-surface-container-low p-6 rounded-lg group hover:bg-surface-container-high transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 rounded bg-tertiary/10 text-tertiary">
+<span class="material-symbols-outlined">groups</span>
+</div>
+<span class="text-[10px] font-bold text-tertiary px-2 py-1 bg-tertiary/10 rounded">Ativos</span>
+</div>
+<p class="text-on-surface-variant text-sm font-medium">Novos Leads</p>
+<h4 class="text-3xl font-bold text-on-surface mt-1">42</h4>
+<div class="flex items-center gap-1 mt-4 text-[10px] text-tertiary">
+<span class="material-symbols-outlined text-xs">auto_awesome</span>
+<span>8 aguardando primeiro contato</span>
+</div>
+</div>
+<!-- Pedidos em Produção -->
+<div class="bg-surface-container-low p-6 rounded-lg group hover:bg-surface-container-high transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 rounded bg-secondary-container/30 text-secondary">
+<span class="material-symbols-outlined">inventory_2</span>
+</div>
+</div>
+<p class="text-on-surface-variant text-sm font-medium">Pedidos em Produção</p>
+<h4 class="text-3xl font-bold text-on-surface mt-1">18</h4>
+<div class="w-full bg-surface-container-highest h-1 mt-6 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[65%]"></div>
+</div>
+</div>
+<!-- Fábricas Ativas -->
+<div class="bg-surface-container-low p-6 rounded-lg group hover:bg-surface-container-high transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 rounded bg-outline-variant/20 text-on-surface">
+<span class="material-symbols-outlined">factory</span>
+</div>
+</div>
+<p class="text-on-surface-variant text-sm font-medium">Fábricas Ativas</p>
+<h4 class="text-3xl font-bold text-on-surface mt-1">07</h4>
+<div class="flex -space-x-2 mt-4">
+<div class="w-6 h-6 rounded-full bg-primary-container border-2 border-surface-container-low"></div>
+<div class="w-6 h-6 rounded-full bg-tertiary-container border-2 border-surface-container-low"></div>
+<div class="w-6 h-6 rounded-full bg-secondary-container border-2 border-surface-container-low"></div>
+</div>
+</div>
+</div>
+<!-- Main Workspace Layout: Asymmetric -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Active Production Timeline (Wide Column) -->
+<div class="lg:col-span-2 flex flex-col gap-6">
+<div class="bg-surface-container-low rounded-xl overflow-hidden shadow-2xl shadow-black/20">
+<div class="px-8 py-6 border-b border-outline-variant/10 flex justify-between items-center bg-[#1C1B1B]">
+<h5 class="text-lg font-bold">Produção Recente</h5>
+<button class="text-tertiary text-xs font-bold uppercase hover:opacity-80 transition-opacity">Ver Todos</button>
+</div>
+<div class="divide-y divide-outline-variant/5">
+<!-- Production Item 1 -->
+<div class="px-8 py-6 flex items-center gap-6 hover:bg-surface-bright transition-colors">
+<div class="w-20 h-20 rounded bg-surface-container-lowest flex-shrink-0">
+<img alt="Product" class="w-full h-full object-cover rounded opacity-80 group-hover:opacity-100 transition-opacity" data-alt="Elegant mid-century modern wooden chair with dark upholstery against a moody workshop background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFpBvADDNngxtsNdKEY_jMVi1_2WFRj8rfKWseveR5v7yUnA8YF5Z1xgajIFH9XII6lW2gsvxQW0zau7hKmr8zp12FHdnlR8prvXqxuHfO5KSN-9gk58dYvRmpCl6-G22TKnkcFqzKEnvZ0SHP6YRzw7_ED1ii-hXkOggcjvoa8JEkeiM1jRo3u3_aJ20TL5ZmY1LtmiPJGHHtkMNRzYFrLd746Z_k2U5PY_g9E8H9EyzcrYm8nTrAC5Si4juXFnsqVlN3N2Ywr_s"/>
+</div>
+<div class="flex-1">
+<span class="text-[10px] text-tertiary font-bold uppercase tracking-wider">Móveis de Luxo</span>
+<h6 class="font-bold text-lg">Cadeira Nordic Oak</h6>
+<p class="text-sm text-on-surface-variant">Cliente: Residencial Vila Nova</p>
+</div>
+<div class="text-right">
+<div class="text-primary font-bold">Status: Lixamento</div>
+<div class="text-xs text-on-surface-variant mt-1">Entrega em 4 dias</div>
+</div>
+</div>
+<!-- Production Item 2 -->
+<div class="px-8 py-6 flex items-center gap-6 hover:bg-surface-bright transition-colors">
+<div class="w-20 h-20 rounded bg-surface-container-lowest flex-shrink-0">
+<img alt="Product" class="w-full h-full object-cover rounded opacity-80 transition-opacity" data-alt="Minimalist solid wood dining table with visible grain and seamless joints in an architectural setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDaGBC6NE73KQA2Ek9J3fsVd1LWX4T7RSqLVZaCXQxyEbnnOsxnN2-fYFrqlGQrPuxRFxZjG-AUiGst9o2uLKE0NjmYmLNzkS_LJURwPWzi-LIZqgRpf_e7ylTueQANRIjqH_Q3nwrNdVn3ECo6OWd6KPPOIY931YTA3RgmNB1TBkY7ZWKx0fY1AA8VAY5FWDpdEaNkaA3yHCp1x1zRYF_0Uq3KSqutmeGEYhdKgBgH3FwIScVdrugLNAmx-ul8iQFin-rttqHqelg"/>
+</div>
+<div class="flex-1">
+<span class="text-[10px] text-tertiary font-bold uppercase tracking-wider">Design Industrial</span>
+<h6 class="font-bold text-lg">Mesa de Jantar Raw Steel</h6>
+<p class="text-sm text-on-surface-variant">Cliente: Studio Moema</p>
+</div>
+<div class="text-right">
+<div class="text-secondary font-bold">Status: Montagem</div>
+<div class="text-xs text-on-surface-variant mt-1">Entrega em 7 dias</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Sidebar: Quick Actions & News (Narrow Column) -->
+<div class="flex flex-col gap-6">
+<!-- Glassmorphism Card -->
+<div class="glass-panel p-8 rounded-xl border border-outline-variant/10">
+<h5 class="text-lg font-bold mb-4 text-[#EEBD8E]">Dica do Especialista AI</h5>
+<p class="text-sm text-on-surface-variant leading-relaxed italic">
+                            "A demanda por acabamentos em nogueira aumentou 15% esta semana. Considere atualizar sua Tabela de Preços para a coleção de Inverno."
+                        </p>
+<button class="mt-6 w-full py-3 text-xs font-bold uppercase tracking-widest border border-outline-variant/30 rounded hover:bg-tertiary hover:text-on-tertiary transition-all duration-300">
+                            Atualizar Catálogo
+                        </button>
+</div>
+<!-- Factory Health -->
+<div class="bg-surface-container-low p-6 rounded-xl">
+<h5 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-6">Status das Fábricas</h5>
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<span class="text-sm">Unidade Joinville</span>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="text-[10px] text-on-surface-variant">Operando</span>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-sm">Atelier São Paulo</span>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="text-[10px] text-on-surface-variant">Operando</span>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-sm">Fab Sul Gesso</span>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-error animate-pulse"></div>
+<span class="text-[10px] text-error">Manutenção</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Activity Feed -->
+<div class="bg-surface-container-low p-6 rounded-xl overflow-hidden">
+<h5 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-6">Atividade Recente</h5>
+<div class="space-y-6 relative before:content-[''] before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[1px] before:bg-outline-variant/20">
+<div class="relative pl-8">
+<div class="absolute left-0 top-1 w-4 h-4 bg-primary/20 border-2 border-primary rounded-full"></div>
+<p class="text-xs font-bold text-on-surface">Orçamento Aprovado</p>
+<p class="text-[10px] text-on-surface-variant">Cliente Ana Costa • 2h atrás</p>
+</div>
+<div class="relative pl-8">
+<div class="absolute left-0 top-1 w-4 h-4 bg-tertiary/20 border-2 border-tertiary rounded-full"></div>
+<p class="text-xs font-bold text-on-surface">Novo Lead Adicionado</p>
+<p class="text-[10px] text-on-surface-variant">Origem: Site Institucional • 5h atrás</p>
+</div>
+<div class="relative pl-8">
+<div class="absolute left-0 top-1 w-4 h-4 bg-outline-variant/20 border-2 border-outline-variant rounded-full"></div>
+<p class="text-xs font-bold text-on-surface">Estoque Atualizado</p>
+<p class="text-[10px] text-on-surface-variant">Madeira Maciça (Cerejeira) • Ontem</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full glass-panel h-16 flex justify-around items-center z-50 border-t border-outline-variant/10">
+<button class="flex flex-col items-center justify-center text-[#EEBD8E]">
+<span class="material-symbols-outlined">request_quote</span>
+<span class="text-[10px] font-medium">Orçamentos</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#D4C4B7] opacity-70">
+<span class="material-symbols-outlined">factory</span>
+<span class="text-[10px] font-medium">Fábricas</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#D4C4B7] opacity-70">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="text-[10px] font-medium">Produtos</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#D4C4B7] opacity-70">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Usuário</span>
+</button>
+</nav>
+<!-- Contextual FAB - Mobile Primary Action -->
+<button class="md:hidden fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-full shadow-2xl flex items-center justify-center z-50">
+<span class="material-symbols-outlined">add</span>
+</button>
+</body></html>
