@@ -217,12 +217,9 @@ export default function LoginPage() {
                         </form>
 
                         <div className="mt-8 pt-6 border-t border-slate-700/50 flex flex-col items-center gap-4">
-                            <Link
-                                href="/cadastro"
-                                className="text-sm text-slate-400 hover:text-white transition-colors cursor-pointer"
-                            >
+                            <p className="text-sm text-slate-400">
                                 Não possui uma conta?
-                            </Link>
+                            </p>
                             <Link
                                 href="/cadastro"
                                 className="text-sm font-bold text-primary border border-primary/20 bg-primary/5 px-6 py-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer"
