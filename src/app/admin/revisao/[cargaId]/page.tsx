@@ -4,6 +4,28 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
+/**
+ * Converte qualquer valor em string segura para renderização.
+ * ExcelJS retorna objetos {result, sharedFormula} para células com fórmulas.
+ * Este helper garante que sempre temos uma string/número para o React.
+ */
+function safeValue(v: unknown): string {
+    if (v === null || v === undefined) return "—";
+    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
+    if (typeof v === "object") {
+        // ExcelJS formula cell: {result: value, sharedFormula: "..."}
+        const obj = v as Record<string, unknown>;
+        if ("result" in obj) return safeValue(obj.result);
+        // richText: [{text: "..."}]
+        if ("richText" in obj && Array.isArray(obj.richText)) {
+            return obj.richText.map((rt: { text: string }) => rt.text).join("");
+        }
+        // Fallback: stringify
+        try { return JSON.stringify(v); } catch { return "[objeto]" }
+    }
+    return String(v);
+}
+
 export default function RevisaoPage() {
     const params = useParams();
     const router = useRouter();
@@ -127,7 +149,7 @@ export default function RevisaoPage() {
                                         {Object.entries(item.raw_data).map(([k, v]) => (
                                             <div key={k} className="bg-slate-800/50 p-3 rounded-lg border border-slate-800/80">
                                                 <div className="text-xs text-slate-500 font-bold mb-1 truncate" title={k}>{k}</div>
-                                                <div className="text-white font-medium truncate" title={v as string}>{v as React.ReactNode}</div>
+                                                <div className="text-white font-medium truncate" title={safeValue(v)}>{safeValue(v)}</div>
                                             </div>
                                         ))}
                                     </div>
@@ -158,7 +180,7 @@ export default function RevisaoPage() {
                                             {Object.entries(item.mapped_data).map(([k, v]) => (
                                                 <div key={k} className="flex justify-between items-center bg-slate-800 p-3 rounded-lg border border-slate-700">
                                                     <span className="text-xs text-slate-400 font-bold uppercase w-1/3">{k}</span>
-                                                    <span className="text-sm text-white font-medium w-2/3 text-right truncate">{v as React.ReactNode}</span>
+                                                    <span className="text-sm text-white font-medium w-2/3 text-right truncate">{safeValue(v)}</span>
                                                 </div>
                                             ))}
                                         </div>

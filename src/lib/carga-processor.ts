@@ -355,9 +355,26 @@ async function processXlsx(
         headers.forEach((h, index) => {
             let cellVal = row[index];
 
-            // ExcelJS pode retornar richText objects — normalizar
-            if (cellVal !== null && cellVal !== undefined && typeof cellVal === "object" && "richText" in (cellVal as Record<string, unknown>)) {
-                cellVal = ((cellVal as { richText: { text: string }[] }).richText || []).map(rt => rt.text).join("");
+            // ExcelJS pode retornar objetos especiais — normalizar para primitivos
+            if (cellVal !== null && cellVal !== undefined && typeof cellVal === "object") {
+                const obj = cellVal as Record<string, unknown>;
+                // Fórmula: {result: valor, sharedFormula: "..."}
+                if ("result" in obj) {
+                    cellVal = obj.result;
+                }
+                // richText: [{text: "..."}, ...]
+                else if ("richText" in obj && Array.isArray(obj.richText)) {
+                    cellVal = (obj.richText as { text: string }[]).map(rt => rt.text).join("");
+                }
+                // Outro objeto desconhecido — stringify
+                else {
+                    try { cellVal = JSON.stringify(cellVal); } catch { cellVal = ""; }
+                }
+            }
+
+            // Garantir que o valor final é primitivo (string/number)
+            if (cellVal !== null && cellVal !== undefined && typeof cellVal === "object") {
+                cellVal = String(cellVal);
             }
 
             if (h && cellVal !== null && cellVal !== undefined && String(cellVal).trim() !== "") {
