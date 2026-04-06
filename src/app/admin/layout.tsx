@@ -7,6 +7,7 @@ import type { Profile } from "@/types";
 
 const NAV_ITEMS = [
     { icon: "dashboard", label: "Dashboard", href: "/admin" },
+    { icon: "inventory_2", label: "Produtos", href: "/admin/produtos" },
     { icon: "upload_file", label: "Upload de Dados", href: "/admin", section: "upload" },
     { icon: "history", label: "Histórico de Cargas", href: "/admin", section: "history" },
     { icon: "search", label: "Catálogo", href: "/search" },

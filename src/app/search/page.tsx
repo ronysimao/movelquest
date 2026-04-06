@@ -99,6 +99,65 @@ function ProductCard({
 }
 
 // ============================================
+// Product List Item Component (Technical View)
+// ============================================
+function ProductListItem({
+    movel,
+    onOpen,
+}: {
+    movel: Movel;
+    onOpen: (m: Movel) => void;
+}) {
+    const placeholderImg = "/placeholder-furniture.jpg";
+    const imgUrl = movel.imagem_url || placeholderImg;
+
+    return (
+        <div className="flex items-center gap-4 bg-slate-900 border border-slate-800 rounded-xl p-3 hover:ring-2 hover:ring-primary/50 transition-all group">
+            {/* Thumbnail */}
+            <div
+                className="w-16 h-16 bg-slate-800 rounded-lg bg-cover bg-center shrink-0 border border-slate-700"
+                style={{ backgroundImage: `url(${imgUrl})` }}
+            />
+
+            {/* Info */}
+            <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 sm:gap-6 items-center">
+                <div className="min-w-0">
+                    <p className="text-sm font-bold text-white truncate">{movel.modelo}</p>
+                    <p className="text-xs text-slate-500 truncate">
+                        {movel.categoria}
+                        {movel.variante && ` · ${movel.variante}`}
+                        {(movel.fornecedor as unknown as { nome: string })?.nome && ` · ${(movel.fornecedor as unknown as { nome: string }).nome}`}
+                    </p>
+                </div>
+
+                {/* Dimensions */}
+                <div className="hidden sm:flex items-center gap-2 text-[10px] text-slate-400 shrink-0">
+                    {movel.altura_cm && <span className="bg-slate-800 px-1.5 py-0.5 rounded">A: {movel.altura_cm}</span>}
+                    {movel.largura_cm && <span className="bg-slate-800 px-1.5 py-0.5 rounded">L: {movel.largura_cm}</span>}
+                    {movel.comprimento_cm && <span className="bg-slate-800 px-1.5 py-0.5 rounded">P: {movel.comprimento_cm}</span>}
+                </div>
+
+                {/* Material */}
+                <div className="hidden sm:block text-xs text-slate-500 truncate max-w-[120px]">
+                    {movel.material || movel.tecido || "—"}
+                </div>
+
+                {/* Price */}
+                <span className="font-extrabold text-base text-white shrink-0">{formatCurrency(movel.preco)}</span>
+            </div>
+
+            {/* Action */}
+            <button
+                onClick={() => onOpen(movel)}
+                className="bg-primary/10 hover:bg-primary text-primary hover:text-white p-2 rounded-lg transition-colors shrink-0 cursor-pointer"
+            >
+                <span className="material-symbols-outlined">open_in_new</span>
+            </button>
+        </div>
+    );
+}
+
+// ============================================
 // Cart Sidebar Component
 // ============================================
 function CartSidebar({
@@ -865,6 +924,7 @@ export default function SearchPage() {
     const [totalCount, setTotalCount] = useState(0);
     const [selectedMovel, setSelectedMovel] = useState<Movel | null>(null);
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     
     // Cart State
     const [cart, setCart] = useState<{ movel: Movel; quantidade: number }[]>([]);
@@ -1129,7 +1189,7 @@ export default function SearchPage() {
                 <main className="flex-1 min-w-0 p-4 sm:p-6 w-full max-w-full">
                     {/* Title + View Toggle */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4 w-full">
-                        <div className="min-w-0 w-full">
+                        <div className="min-w-0">
                             <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
                                 Catálogo de Vendas
                             </h1>
@@ -1138,6 +1198,28 @@ export default function SearchPage() {
                                     ? "Carregando..."
                                     : `Exibindo ${totalCount} produtos disponíveis`}
                             </p>
+                        </div>
+                        <div className="flex items-center gap-1 bg-slate-800/50 p-1 rounded-lg border border-slate-700/50 shrink-0">
+                            <button
+                                onClick={() => setViewMode("grid")}
+                                className={cn(
+                                    "p-2 rounded-md transition-all cursor-pointer",
+                                    viewMode === "grid" ? "bg-primary text-white shadow-md" : "text-slate-400 hover:text-white"
+                                )}
+                                title="Visualização em grade"
+                            >
+                                <span className="material-symbols-outlined text-lg">grid_view</span>
+                            </button>
+                            <button
+                                onClick={() => setViewMode("list")}
+                                className={cn(
+                                    "p-2 rounded-md transition-all cursor-pointer",
+                                    viewMode === "list" ? "bg-primary text-white shadow-md" : "text-slate-400 hover:text-white"
+                                )}
+                                title="Visualização em lista"
+                            >
+                                <span className="material-symbols-outlined text-lg">view_list</span>
+                            </button>
                         </div>
                     </div>
 
@@ -1169,15 +1251,27 @@ export default function SearchPage() {
                         </div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 w-full">
-                                {moveis.map((movel) => (
-                                    <ProductCard
-                                        key={movel.id}
-                                        movel={movel}
-                                        onOpen={setSelectedMovel}
-                                    />
-                                ))}
-                            </div>
+                            {viewMode === "grid" ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 w-full">
+                                    {moveis.map((movel) => (
+                                        <ProductCard
+                                            key={movel.id}
+                                            movel={movel}
+                                            onOpen={setSelectedMovel}
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-3 w-full">
+                                    {moveis.map((movel) => (
+                                        <ProductListItem
+                                            key={movel.id}
+                                            movel={movel}
+                                            onOpen={setSelectedMovel}
+                                        />
+                                    ))}
+                                </div>
+                            )}
 
                             {/* Pagination */}
                             {totalPages > 1 && (
