@@ -250,29 +250,89 @@ async function processXlsx(
         throw new Error("Planilha sem dados legíveis.");
     }
 
-    // ---- Detectar linha de cabeçalho ----
-    // Primeira linha com 3+ células string não-vazias
+    // ---- Normalizar valor de célula ExcelJS para primitivo ----
+    function normalizeCellValue(cellVal: unknown): string | number | null {
+        if (cellVal === null || cellVal === undefined) return null;
+
+        // ExcelJS: fórmula → {result: valor, sharedFormula: "..."}
+        if (typeof cellVal === "object" && cellVal !== null) {
+            const obj = cellVal as Record<string, unknown>;
+            if ("result" in obj) return normalizeCellValue(obj.result);
+            if ("richText" in obj && Array.isArray(obj.richText)) {
+                return (obj.richText as { text: string }[]).map(rt => rt.text).join("");
+            }
+            // Date object → ignorar (datas não são cabeçalhos nem dados úteis neste contexto)
+            if (cellVal instanceof Date) return null;
+            try { return JSON.stringify(cellVal); } catch { return null; }
+        }
+
+        if (typeof cellVal === "number") return cellVal;
+        if (typeof cellVal === "boolean") return String(cellVal);
+        
+        const str = String(cellVal).trim();
+        if (str === "") return null;
+
+        // Detectar datas disfarçadas de string (ex: "Wed Apr 01 2026...")
+        if (/^(mon|tue|wed|thu|fri|sat|sun)\s/i.test(str)) return null;
+        if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(str)) return null;
+
+        return str;
+    }
+
+    // ---- Detectar linha de cabeçalho (algoritmo inteligente) ----
+    // Procura a primeira linha que pareça um cabeçalho de tabela:
+    // - 4+ células com texto curto (< 40 chars), não-numérico, não-data
+    // - Valores distintos entre si (não repetidos)
+    // - A linha abaixo deve ter padrão diferente (dados, não mais labels)
     let headerRowIndex = -1;
     let headers: string[] = [];
 
-    for (let i = 0; i < Math.min(15, rawData.length); i++) {
+    for (let i = 0; i < Math.min(25, rawData.length); i++) {
         const row = rawData[i];
         if (!Array.isArray(row)) continue;
 
-        const stringCells = row.filter((r) => {
-            if (r === null || r === undefined) return false;
-            const str = String(r).trim();
-            return str !== "" && isNaN(Number(str));
+        // Normalizar todas as células da linha
+        const normalized = row.map(c => normalizeCellValue(c));
+
+        // Filtrar células que parecem labels de cabeçalho:
+        // string curta (< 40 chars), não-numérica, não-vazia
+        const headerCandidates = normalized.filter(v => {
+            if (v === null) return false;
+            if (typeof v === "number") return false;
+            const s = String(v).trim();
+            return s.length > 0 && s.length < 40 && isNaN(Number(s));
         });
 
-        if (stringCells.length >= 3) {
-            headers = row.map((h: unknown) => {
-                if (h === null || h === undefined) return "";
-                // ExcelJS pode retornar objetos { richText: [...] } para texto formatado
-                const val = typeof h === "object" && h !== null && "richText" in h
-                    ? (h as { richText: { text: string }[] }).richText.map(rt => rt.text).join("")
-                    : String(h);
-                return val.trim().toUpperCase();
+        // Precisamos de pelo menos 4 labels curtos para considerar como cabeçalho
+        if (headerCandidates.length < 4) continue;
+
+        // Labels devem ser distintos (cabeçalhos não se repetem)
+        const uniqueLabels = new Set(headerCandidates.map(l => String(l).toUpperCase()));
+        if (uniqueLabels.size < headerCandidates.length * 0.7) continue;
+
+        // Validação: a linha abaixo deve existir e ter padrão de "dados"
+        // (pelo menos 1 número ou strings mais longas/repetitivas)
+        const nextRow = rawData[i + 1];
+        if (nextRow && Array.isArray(nextRow)) {
+            const nextNormalized = nextRow.map(c => normalizeCellValue(c));
+            const nextNonEmpty = nextNormalized.filter(v => v !== null);
+            
+            // Se a próxima linha tem ao menos 2 valores preenchidos, é um bom sinal
+            if (nextNonEmpty.length >= 2) {
+                // Encontramos o cabeçalho!
+                headers = normalized.map(v => {
+                    if (v === null) return "";
+                    return String(v).trim().toUpperCase();
+                });
+                headerRowIndex = i;
+                console.log(`[XLSX] Cabeçalho detectado na linha ${i + 1} (${headerCandidates.length} colunas, ${uniqueLabels.size} únicos)`);
+                break;
+            }
+        } else {
+            // Última linha do arquivo — aceitar como cabeçalho se tiver dados suficientes
+            headers = normalized.map(v => {
+                if (v === null) return "";
+                return String(v).trim().toUpperCase();
             });
             headerRowIndex = i;
             break;
@@ -280,11 +340,16 @@ async function processXlsx(
     }
 
     if (headerRowIndex === -1 || headers.length === 0) {
-        throw new Error("Não foi possível identificar o cabeçalho no arquivo XLSX. A primeira linha deve conter os nomes das colunas.");
+        // Fallback: logar as primeiras linhas para debug
+        for (let i = 0; i < Math.min(5, rawData.length); i++) {
+            const normalized = rawData[i].map(c => normalizeCellValue(c));
+            console.log(`[XLSX] Linha ${i + 1}: [${normalized.filter(Boolean).join(" | ")}]`);
+        }
+        throw new Error("Não foi possível identificar o cabeçalho da tabela. A planilha pode ter um formato não suportado. Verifique se existem pelo menos 4 colunas de dados com rótulos na parte superior.");
     }
 
     const cleanHeaders = headers.filter(Boolean);
-    console.log(`[XLSX/ExcelJS] Cabeçalho encontrado na linha ${headerRowIndex + 1}: [${cleanHeaders.join(", ")}]`);
+    console.log(`[XLSX/ExcelJS] Cabeçalho: [${cleanHeaders.join(", ")}]`);
 
     // ---- Salvar cabeçalhos brutos na carga (para tela de mapeamento manual) ----
     await supabase
@@ -353,31 +418,16 @@ async function processXlsx(
         let isEmptyRow = true;
 
         headers.forEach((h, index) => {
-            let cellVal = row[index];
-
-            // ExcelJS pode retornar objetos especiais — normalizar para primitivos
-            if (cellVal !== null && cellVal !== undefined && typeof cellVal === "object") {
-                const obj = cellVal as Record<string, unknown>;
-                // Fórmula: {result: valor, sharedFormula: "..."}
-                if ("result" in obj) {
-                    cellVal = obj.result;
-                }
-                // richText: [{text: "..."}, ...]
-                else if ("richText" in obj && Array.isArray(obj.richText)) {
-                    cellVal = (obj.richText as { text: string }[]).map(rt => rt.text).join("");
-                }
-                // Outro objeto desconhecido — stringify
-                else {
-                    try { cellVal = JSON.stringify(cellVal); } catch { cellVal = ""; }
-                }
+            const raw = row[index];
+            // Reutilizar normalizeCellValue mas aceitar datas em dados (não em cabeçalho)
+            let cellVal: string | number | null = null;
+            if (raw instanceof Date) {
+                cellVal = raw.toISOString().split("T")[0]; // "2026-04-01"
+            } else {
+                cellVal = normalizeCellValue(raw);
             }
 
-            // Garantir que o valor final é primitivo (string/number)
-            if (cellVal !== null && cellVal !== undefined && typeof cellVal === "object") {
-                cellVal = String(cellVal);
-            }
-
-            if (h && cellVal !== null && cellVal !== undefined && String(cellVal).trim() !== "") {
+            if (h && cellVal !== null && String(cellVal).trim() !== "") {
                 rowObject[h] = cellVal;
                 isEmptyRow = false;
             }

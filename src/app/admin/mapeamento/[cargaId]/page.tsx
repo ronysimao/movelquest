@@ -53,6 +53,7 @@ export default function MapeamentoPage() {
     const [mappings, setMappings] = useState<MappingEntry[]>([]);
     const [sampleData, setSampleData] = useState<Record<string, unknown>[]>([]);
     const [existingMappings, setExistingMappings] = useState<{ raw_key: string; standard_key: string }[]>([]);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     // ---- Fetch data ----
     const fetchData = useCallback(async () => {
@@ -79,10 +80,12 @@ export default function MapeamentoPage() {
                 });
                 setMappings(initialMappings);
             } else {
-                setToast({ message: json.error || "Erro ao carregar dados", type: "error" });
+                console.error("[Mapeamento] API error:", json);
+                setLoadError(json.error || `Erro HTTP ${res.status}`);
             }
-        } catch {
-            setToast({ message: "Falha de conexão", type: "error" });
+        } catch (e) {
+            console.error("[Mapeamento] Fetch error:", e);
+            setLoadError("Falha de conexão com o servidor");
         } finally {
             setLoading(false);
         }
@@ -178,9 +181,16 @@ export default function MapeamentoPage() {
     if (!carga) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="text-center text-slate-400">
-                    <span className="material-symbols-outlined text-5xl mb-4 block">error</span>
-                    <p>Carga não encontrada.</p>
+                <div className="text-center text-slate-400 max-w-md">
+                    <span className="material-symbols-outlined text-5xl mb-4 block text-red-400">error</span>
+                    <h3 className="text-lg font-bold text-white mb-2">Erro ao carregar carga</h3>
+                    <p className="text-sm mb-4">{loadError || "Carga não encontrada ou acesso negado."}</p>
+                    <button
+                        onClick={() => { setLoading(true); setLoadError(null); fetchData(); }}
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium cursor-pointer transition-colors"
+                    >
+                        Tentar novamente
+                    </button>
                 </div>
             </div>
         );
