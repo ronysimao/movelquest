@@ -97,7 +97,7 @@ export interface Movel {
     created_at?: string;
 }
 
-export type CargaStatus = "processando" | "sucesso" | "falha";
+export type CargaStatus = "processando" | "sucesso" | "falha" | "needs_human_help";
 
 export interface Carga {
     id: number;
@@ -109,6 +109,22 @@ export interface Carga {
     usuario_id: string;
     /** Quantidade de itens pendentes na fila de revisão (enriquecido pela API) */
     revisao_pendente?: number;
+    /** Motivo pelo qual a IA escalou para ajuste humano */
+    fallback_reason?: string;
+    /** Cabeçalhos brutos do arquivo original (para mapeamento manual) */
+    raw_headers?: string[];
+}
+
+export interface FieldMapping {
+    id: number;
+    organization_id?: string;
+    fornecedor_id?: number;
+    raw_key: string;
+    standard_key: string;
+    unit_multiplier?: number;
+    confidence?: number;
+    is_active: boolean;
+    created_at?: string;
 }
 
 export interface Orcamento {

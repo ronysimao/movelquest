@@ -31,6 +31,12 @@ function StatusBadge({ status }: { status: CargaStatus }) {
             text: "text-red-400",
             icon: "error",
         },
+        needs_human_help: {
+            label: "Ajuste Manual",
+            bg: "bg-orange-900/30",
+            text: "text-orange-400",
+            icon: "front_hand",
+        },
     };
 
     const c = config[status];
@@ -511,6 +517,26 @@ function HistoryTable({
                                                         </button>
                                                     </>
                                                 )}
+                                                {carga.status === "needs_human_help" && (
+                                                    <>
+                                                        <a
+                                                            href={`/admin/mapeamento/${carga.id}`}
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white transition-colors cursor-pointer text-xs font-bold"
+                                                            title="Ajustar mapeamento manualmente"
+                                                        >
+                                                            <span className="material-symbols-outlined text-lg">tune</span>
+                                                            <span className="md:hidden">Ajustar</span>
+                                                        </a>
+                                                        <button
+                                                            onClick={() => handleDelete(carga.id)}
+                                                            className="flex items-center gap-1.5 md:block px-3 py-1.5 md:p-0 rounded-lg md:rounded-none bg-red-900/20 md:bg-transparent text-red-500 hover:text-red-400 transition-colors ml-2 cursor-pointer"
+                                                            title="Excluir"
+                                                        >
+                                                            <span className="material-symbols-outlined text-lg opacity-80">delete</span>
+                                                            <span className="md:hidden text-xs font-bold">Excluir</span>
+                                                        </button>
+                                                    </>
+                                                )}
                                                 {carga.status === "processando" && (
                                                     <>
                                                         <span className="material-symbols-outlined text-amber-400 animate-spin-slow text-lg">
@@ -590,6 +616,7 @@ function StatsSidebar({ cargas }: { cargas: Carga[] }) {
     const processing = cargas.filter((c) => c.status === "processando").length;
     const pendingReview = cargas.reduce((sum, c) => sum + (c.revisao_pendente ?? 0), 0);
     const successCount = cargas.filter((c) => c.status === "sucesso").length;
+    const needsHelpCount = cargas.filter((c) => c.status === "needs_human_help").length;
 
     return (
         <div className="space-y-6">
@@ -633,8 +660,22 @@ function StatsSidebar({ cargas }: { cargas: Carga[] }) {
                     )}
 
                     {/* Resumo rápido */}
-                    {(pendingReview > 0 || successCount > 0) && (
+                    {(pendingReview > 0 || successCount > 0 || needsHelpCount > 0) && (
                         <div className="pt-3 mt-3 border-t border-slate-800 space-y-2">
+                            {needsHelpCount > 0 && (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-orange-400 flex items-center gap-1.5">
+                                        <span className="material-symbols-outlined text-sm">front_hand</span>
+                                        Aguardando ajuste
+                                    </span>
+                                    <a
+                                        href="#"
+                                        className="text-xs font-bold px-2 py-0.5 bg-orange-900/30 text-orange-400 rounded cursor-pointer hover:bg-orange-900/50 transition-colors"
+                                    >
+                                        {needsHelpCount} {needsHelpCount === 1 ? "carga" : "cargas"}
+                                    </a>
+                                </div>
+                            )}
                             {pendingReview > 0 && (
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm text-violet-300">Pendentes de revisão</span>
