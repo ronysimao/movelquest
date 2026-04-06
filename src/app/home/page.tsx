@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function HomePage() {
   return (
@@ -14,42 +15,46 @@ export default function HomePage() {
         </div>
         <nav className="flex-1 overflow-y-auto no-scrollbar flex flex-col px-4 gap-1">
           {/* Active state manually determined as 'Orçamentos' for Dashboard view */}
-          <a className="flex items-center gap-3 px-4 py-3 rounded text-[#EEBD8E] font-bold border-r-2 border-[#EEBD8E] bg-[#2A2A2A] transition-all duration-300 ease-out cursor-pointer">
+          <Link href="/search" className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
+            <span className="material-symbols-outlined">auto_awesome</span>
+            <span className="font-['Inter'] text-sm font-medium">Catálogo Inteligente</span>
+          </Link>
+          <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded text-[#EEBD8E] font-bold border-r-2 border-[#EEBD8E] bg-[#2A2A2A] transition-all duration-300 ease-out cursor-pointer">
             <span className="material-symbols-outlined">request_quote</span>
             <span className="font-['Inter'] text-sm font-medium">Orçamentos</span>
-          </a>
-          <a className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
+          </Link>
+          <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
             <span className="material-symbols-outlined">factory</span>
             <span className="font-['Inter'] text-sm font-medium">Fábricas</span>
-          </a>
-          <a className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
+          </Link>
+          <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
             <span className="material-symbols-outlined">groups</span>
             <span className="font-['Inter'] text-sm font-medium">Clientes</span>
-          </a>
-          <a className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
+          </Link>
+          <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
             <span className="material-symbols-outlined">inventory_2</span>
             <span className="font-['Inter'] text-sm font-medium">Produtos</span>
-          </a>
-          <a className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
+          </Link>
+          <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
             <span className="material-symbols-outlined">payments</span>
             <span className="font-['Inter'] text-sm font-medium">Tabela de Preço</span>
-          </a>
-          <a className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
+          </Link>
+          <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
             <span className="material-symbols-outlined">storefront</span>
             <span className="font-['Inter'] text-sm font-medium">Minhas Lojas</span>
-          </a>
-          <a className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
+          </Link>
+          <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
             <span className="material-symbols-outlined">person</span>
             <span className="font-['Inter'] text-sm font-medium">Usuários</span>
-          </a>
-          <a className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
+          </Link>
+          <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
             <span className="material-symbols-outlined">settings</span>
             <span className="font-['Inter'] text-sm font-medium">Configurações</span>
-          </a>
-          <a className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
+          </Link>
+          <Link href="/admin" className="flex items-center gap-3 px-4 py-3 rounded text-[#D4C4B7] opacity-70 hover:bg-[#2A2A2A] hover:text-[#E5E2E1] transition-all duration-300 ease-out cursor-pointer">
             <span className="material-symbols-outlined">upload_file</span>
             <span className="font-['Inter'] text-sm font-medium">Importar Catálogo</span>
-          </a>
+          </Link>
         </nav>
         <div className="px-8 mt-auto pt-6 border-t border-outline-variant/10">
           <div className="flex items-center gap-3 group cursor-pointer">
