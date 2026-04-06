@@ -497,8 +497,12 @@ function HistoryTable({
                                                 {carga.status === "falha" && (
                                                     <>
                                                         <button
+                                                            onClick={() => onToast({
+                                                                message: carga.erro_mensagem || "Erro desconhecido no processamento",
+                                                                type: "error"
+                                                            })}
                                                             className="flex items-center gap-1.5 md:block px-3 py-1.5 md:p-0 rounded-lg md:rounded-none bg-slate-800 md:bg-transparent text-amber-500 hover:text-amber-400 transition-colors cursor-pointer"
-                                                            title="Ver erro"
+                                                            title={carga.erro_mensagem || "Ver erro"}
                                                         >
                                                             <span className="material-symbols-outlined text-lg opacity-80">
                                                                 error
