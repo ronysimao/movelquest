@@ -330,8 +330,20 @@ function HistoryTable({
         return { icon: "description", color: "text-primary" };
     };
 
+    const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+
     const handleDelete = async (id: number) => {
-        if (!confirm("Tem certeza que deseja cancelar e excluir esta importação?")) return;
+        // Primeiro clique: pedir confirmação via toast
+        if (pendingDeleteId !== id) {
+            setPendingDeleteId(id);
+            onToast({ message: "Clique novamente em Excluir para confirmar a exclusão", type: "error" });
+            // Reset após 4 segundos se não clicar de novo
+            setTimeout(() => setPendingDeleteId(prev => prev === id ? null : prev), 4000);
+            return;
+        }
+
+        // Segundo clique: executar exclusão
+        setPendingDeleteId(null);
 
         try {
             const res = await fetch(`/api/cargas/${id}`, { method: "DELETE" });
@@ -511,8 +523,12 @@ function HistoryTable({
                                                         </button>
                                                         <button
                                                             onClick={() => handleDelete(carga.id)}
-                                                            className="flex items-center gap-1.5 md:block px-3 py-1.5 md:p-0 rounded-lg md:rounded-none bg-red-900/20 md:bg-transparent text-red-500 hover:text-red-400 transition-colors ml-2 cursor-pointer"
-                                                            title="Excluir"
+                                                            className={`flex items-center gap-1.5 md:block px-3 py-1.5 md:p-0 rounded-lg md:rounded-none transition-colors ml-2 cursor-pointer ${
+                                                                pendingDeleteId === carga.id
+                                                                    ? "bg-red-600 md:bg-transparent text-yellow-300 animate-pulse"
+                                                                    : "bg-red-900/20 md:bg-transparent text-red-500 hover:text-red-400"
+                                                            }`}
+                                                            title={pendingDeleteId === carga.id ? "Confirmar exclusão" : "Excluir"}
                                                         >
                                                             <span className="material-symbols-outlined text-lg opacity-80">
                                                                 delete
