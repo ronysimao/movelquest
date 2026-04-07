@@ -2,12 +2,13 @@
  * carga-processor.ts
  * Lógica principal de processamento de cargas (XLSX/PDF/CSV com Gemini AI).
  * 
- * Pipeline:
- * 1. Consulta mapeamentos conhecidos (field_mappings) antes de usar IA
- * 2. Se não houver, usa Gemini para sugerir mapeamento
- * 3. Avalia confiança geral e escala para humano se necessário
+ * Pipeline AI-FIRST:
+ * 1. Consulta mapeamentos conhecidos (field_mappings) — aprendizado contínuo
+ * 2. Se não houver, extrai conteúdo bruto do arquivo como texto
+ * 3. Envia o texto ao Gemini para extração inteligente → JSON com produtos
  * 4. Produtos com confiança >= 80% são inseridos automaticamente
  * 5. Produtos com confiança < 80% vão para fila de revisão
+ * 6. Se confiança geral < 30% ou zero produtos → fallback humano
  *
  * Migrado de SheetJS (xlsx) para ExcelJS — sem CVEs conhecidos.
  */
@@ -15,7 +16,7 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import ExcelJS from "exceljs";
 import Papa from "papaparse";
-import { suggestColumnMappings, extractProductsFromText, applyMapping, type MappingSuggestion } from "@/lib/gemini";
+import { extractProductsFromText, applyMapping, type MappingSuggestion, type ExtractedProduct } from "@/lib/gemini";
 
 type AdminSupabase = SupabaseClient;
 
@@ -36,6 +37,35 @@ export interface ProcessarCargaResult {
 }
 
 // ============================================
+// Utilitário: Normalizar valor de célula ExcelJS para primitivo
+// Trata fórmulas, richText, datas, e objetos
+// ============================================
+function normalizeCellValue(cellVal: unknown): string | number | null {
+    if (cellVal === null || cellVal === undefined) return null;
+
+    if (typeof cellVal === "object" && cellVal !== null) {
+        const obj = cellVal as Record<string, unknown>;
+        // Fórmula: {result: valor, sharedFormula: "..."}
+        if ("result" in obj) return normalizeCellValue(obj.result);
+        // RichText: [{text: "..."}, ...]
+        if ("richText" in obj && Array.isArray(obj.richText)) {
+            return (obj.richText as { text: string }[]).map(rt => rt.text).join("");
+        }
+        // Date object
+        if (cellVal instanceof Date) {
+            return cellVal.toISOString().split("T")[0];
+        }
+        try { return JSON.stringify(cellVal); } catch { return null; }
+    }
+
+    if (typeof cellVal === "number") return cellVal;
+    if (typeof cellVal === "boolean") return String(cellVal);
+
+    const str = String(cellVal).trim();
+    return str === "" ? null : str;
+}
+
+// ============================================
 // Consulta de mapeamentos conhecidos (Aprendizado Contínuo)
 // ============================================
 async function fetchKnownMappings(
@@ -53,7 +83,7 @@ async function fetchKnownMappings(
 
     if (!mappings || mappings.length === 0) return null;
 
-    // Verificar se os mapeamentos conhecidos cobrem pelo menos 50% dos cabeçalhos
+    // Verificar se os mapeamentos cobrem pelo menos 50% dos cabeçalhos
     const normalizedHeaders = headers.map(h => h.trim().toUpperCase());
     const matchedMappings = mappings.filter(m =>
         normalizedHeaders.includes(m.raw_key.trim().toUpperCase())
@@ -88,23 +118,20 @@ function checkFallbackNeeded(
     paraRevisao: number,
     overallConfidence: number
 ): FallbackCheck {
-    // Regra 1: Confiança geral abaixo de 50%
-    if (overallConfidence < 50) {
+    if (overallConfidence < 30) {
         return {
             needsHelp: true,
-            reason: `Confiança do mapeamento muito baixa: ${overallConfidence}%. A IA não reconheceu as colunas do arquivo.`,
+            reason: `Confiança da extração muito baixa: ${overallConfidence}%. A IA não reconheceu o conteúdo do arquivo.`,
         };
     }
 
-    // Regra 2: Mais de 70% das linhas na fila de revisão
     if (totalRows > 0 && paraRevisao > totalRows * 0.7) {
         return {
             needsHelp: true,
-            reason: `${paraRevisao} de ${totalRows} linhas (${Math.round(paraRevisao / totalRows * 100)}%) foram para revisão. O formato do arquivo não é reconhecido.`,
+            reason: `${paraRevisao} de ${totalRows} itens (${Math.round(paraRevisao / totalRows * 100)}%) foram para revisão. O formato do arquivo não é reconhecido.`,
         };
     }
 
-    // Regra 3: Zero produtos extraídos de um arquivo não-vazio
     if (totalRows > 3 && processados === 0 && paraRevisao === 0) {
         return {
             needsHelp: true,
@@ -116,17 +143,65 @@ function checkFallbackNeeded(
 }
 
 // ============================================
+// Utilitário: Inserir produtos extraídos no banco
+// ============================================
+async function insertExtractedProducts(
+    products: ExtractedProduct[],
+    batchConfidence: number,
+    carga: Record<string, unknown>,
+    supabase: AdminSupabase
+): Promise<{ processados: number; paraRevisao: number }> {
+    let processados = 0;
+    let paraRevisao = 0;
+
+    for (const product of products) {
+        const hasMinData = product.modelo || product.categoria;
+        const itemConfidence = hasMinData ? batchConfidence : Math.min(batchConfidence, 30);
+
+        if (itemConfidence >= 80) {
+            const { error } = await supabase.from("moveis").insert({
+                categoria: product.categoria || "Sem Categoria",
+                modelo: product.modelo || "Sem Nome",
+                variante: product.variante || null,
+                tipo: product.tipo || null,
+                comprimento_cm: product.comprimento_cm ? Number(product.comprimento_cm) : null,
+                largura_cm: product.largura_cm ? Number(product.largura_cm) : null,
+                altura_cm: product.altura_cm ? Number(product.altura_cm) : null,
+                material: product.material || null,
+                tecido: product.tecido || null,
+                preco: product.preco ? Number(product.preco) : 0,
+                condicao_pagamento: product.condicao_pagamento || null,
+                ativo: true,
+            });
+
+            if (!error) {
+                processados++;
+            } else {
+                console.error(`[Inserção] Erro:`, error);
+            }
+        } else {
+            await supabase.from("import_review_queue").insert({
+                carga_id: carga.id,
+                organization_id: carga.organization_id || null,
+                raw_data: product,
+                mapped_data: product,
+                confidence_score: itemConfidence,
+                status: "pending",
+            });
+            paraRevisao++;
+        }
+    }
+
+    return { processados, paraRevisao };
+}
+
+// ============================================
 // Função Principal: processarCarga
 // ============================================
-/**
- * Processa uma carga (XLSX, CSV ou PDF) usando IA Gemini com fallback humano.
- * Pode ser chamada diretamente sem necessidade de HTTP request.
- */
 export async function processarCarga(cargaId: number): Promise<ProcessarCargaResult> {
     const supabase = createAdminSupabase();
 
     try {
-        // 1. Buscar detalhes da carga
         const { data: carga, error: cargaErr } = await supabase
             .from("cargas")
             .select("*")
@@ -139,7 +214,6 @@ export async function processarCarga(cargaId: number): Promise<ProcessarCargaRes
 
         console.log(`[Carga ${cargaId}] Iniciando processamento: ${carga.storage_path}`);
 
-        // 2. Download do arquivo do Storage
         const { data: fileData, error: downloadErr } = await supabase.storage
             .from("cargas")
             .download(carga.storage_path);
@@ -156,7 +230,6 @@ export async function processarCarga(cargaId: number): Promise<ProcessarCargaRes
         let paraRevisao = 0;
         let needsHumanHelp = false;
 
-        // 3. Processar conforme o tipo de arquivo
         if (isXlsx) {
             const result = await processXlsx(fileData, carga, supabase);
             processados = result.processados;
@@ -178,7 +251,6 @@ export async function processarCarga(cargaId: number): Promise<ProcessarCargaRes
 
         console.log(`[Carga ${cargaId}] Finalizada! Auto-aprovados: ${processados} | Para revisão: ${paraRevisao} | Fallback humano: ${needsHumanHelp}`);
 
-        // 4. Atualizar status da Carga
         let finalStatus: string;
         if (needsHumanHelp) {
             finalStatus = "needs_human_help";
@@ -213,19 +285,17 @@ export async function processarCarga(cargaId: number): Promise<ProcessarCargaRes
 }
 
 // ============================================
-// Processador XLSX com ExcelJS + IA Gemini
+// Processador XLSX — Abordagem AI-FIRST
+// 1. Extrai TODO o conteúdo da planilha como texto legível
+// 2. Envia ao Gemini para interpretar semanticamente
+// 3. Recebe JSON com produtos estruturados
 // ============================================
 async function processXlsx(
     fileData: Blob,
     carga: Record<string, unknown>,
     supabase: AdminSupabase
 ) {
-    let processados = 0;
-    let paraRevisao = 0;
-
-    // ExcelJS lê a partir de um Buffer (Node.js)
     const arrayBuffer = await fileData.arrayBuffer();
-
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(arrayBuffer);
 
@@ -234,261 +304,180 @@ async function processXlsx(
         throw new Error("Planilha vazia ou sem dados.");
     }
 
-    console.log(`[XLSX/ExcelJS] Planilha "${worksheet.name}" — ${worksheet.rowCount} linhas`);
+    console.log(`[XLSX] Planilha "${worksheet.name}" — ${worksheet.rowCount} linhas`);
 
-    // ---- Extrair todas as linhas como arrays ----
-    const rawData: (unknown[] | null[])[] = [];
-    worksheet.eachRow({ includeEmpty: false }, (row) => {
-        // row.values começa no índice 1 (ExcelJS é 1-indexed) — remover o elemento 0
+    // ---- Extrair TODAS as linhas como texto legível ----
+    const textLines: string[] = [];
+    const allHeaders: string[] = [];
+    let headerCaptured = false;
+
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
         const values = Array.isArray(row.values)
-            ? (row.values as unknown[]).slice(1)
+            ? (row.values as unknown[]).slice(1) // ExcelJS é 1-indexed
             : [];
-        rawData.push(values);
+
+        const normalized = values.map(v => normalizeCellValue(v));
+        const nonEmpty = normalized.filter(v => v !== null);
+
+        // Ignorar linhas com poucos dados (títulos, logos, linhas decorativas)
+        if (nonEmpty.length < 2) return;
+
+        // Converter para texto separado por " | "
+        const lineText = normalized
+            .map(v => v !== null ? String(v) : "")
+            .join(" | ");
+
+        textLines.push(`Linha ${rowNumber}: ${lineText}`);
+
+        // Capturar primeira linha com 4+ labels curtos como "cabeçalho" para fallback
+        if (!headerCaptured && nonEmpty.length >= 4) {
+            const shortTexts = nonEmpty.filter(v =>
+                typeof v === "string" && v.length < 40 && isNaN(Number(v))
+            );
+            if (shortTexts.length >= 4) {
+                shortTexts.forEach(h => allHeaders.push(String(h).trim().toUpperCase()));
+                headerCaptured = true;
+            }
+        }
     });
 
-    if (rawData.length === 0) {
+    if (textLines.length === 0) {
         throw new Error("Planilha sem dados legíveis.");
     }
 
-    // ---- Normalizar valor de célula ExcelJS para primitivo ----
-    function normalizeCellValue(cellVal: unknown): string | number | null {
-        if (cellVal === null || cellVal === undefined) return null;
-
-        // ExcelJS: fórmula → {result: valor, sharedFormula: "..."}
-        if (typeof cellVal === "object" && cellVal !== null) {
-            const obj = cellVal as Record<string, unknown>;
-            if ("result" in obj) return normalizeCellValue(obj.result);
-            if ("richText" in obj && Array.isArray(obj.richText)) {
-                return (obj.richText as { text: string }[]).map(rt => rt.text).join("");
-            }
-            // Date object → ignorar (datas não são cabeçalhos nem dados úteis neste contexto)
-            if (cellVal instanceof Date) return null;
-            try { return JSON.stringify(cellVal); } catch { return null; }
-        }
-
-        if (typeof cellVal === "number") return cellVal;
-        if (typeof cellVal === "boolean") return String(cellVal);
-        
-        const str = String(cellVal).trim();
-        if (str === "") return null;
-
-        // Detectar datas disfarçadas de string (ex: "Wed Apr 01 2026...")
-        if (/^(mon|tue|wed|thu|fri|sat|sun)\s/i.test(str)) return null;
-        if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(str)) return null;
-
-        return str;
-    }
-
-    // ---- Detectar linha de cabeçalho (algoritmo inteligente) ----
-    // Procura a primeira linha que pareça um cabeçalho de tabela:
-    // - 4+ células com texto curto (< 40 chars), não-numérico, não-data
-    // - Valores distintos entre si (não repetidos)
-    // - A linha abaixo deve ter padrão diferente (dados, não mais labels)
-    let headerRowIndex = -1;
-    let headers: string[] = [];
-
-    for (let i = 0; i < Math.min(25, rawData.length); i++) {
-        const row = rawData[i];
-        if (!Array.isArray(row)) continue;
-
-        // Normalizar todas as células da linha
-        const normalized = row.map(c => normalizeCellValue(c));
-
-        // Filtrar células que parecem labels de cabeçalho:
-        // string curta (< 40 chars), não-numérica, não-vazia
-        const headerCandidates = normalized.filter(v => {
-            if (v === null) return false;
-            if (typeof v === "number") return false;
-            const s = String(v).trim();
-            return s.length > 0 && s.length < 40 && isNaN(Number(s));
-        });
-
-        // Precisamos de pelo menos 4 labels curtos para considerar como cabeçalho
-        if (headerCandidates.length < 4) continue;
-
-        // Labels devem ser distintos (cabeçalhos não se repetem)
-        const uniqueLabels = new Set(headerCandidates.map(l => String(l).toUpperCase()));
-        if (uniqueLabels.size < headerCandidates.length * 0.7) continue;
-
-        // Validação: a linha abaixo deve existir e ter padrão de "dados"
-        // (pelo menos 1 número ou strings mais longas/repetitivas)
-        const nextRow = rawData[i + 1];
-        if (nextRow && Array.isArray(nextRow)) {
-            const nextNormalized = nextRow.map(c => normalizeCellValue(c));
-            const nextNonEmpty = nextNormalized.filter(v => v !== null);
-            
-            // Se a próxima linha tem ao menos 2 valores preenchidos, é um bom sinal
-            if (nextNonEmpty.length >= 2) {
-                // Encontramos o cabeçalho!
-                headers = normalized.map(v => {
-                    if (v === null) return "";
-                    return String(v).trim().toUpperCase();
-                });
-                headerRowIndex = i;
-                console.log(`[XLSX] Cabeçalho detectado na linha ${i + 1} (${headerCandidates.length} colunas, ${uniqueLabels.size} únicos)`);
-                break;
-            }
-        } else {
-            // Última linha do arquivo — aceitar como cabeçalho se tiver dados suficientes
-            headers = normalized.map(v => {
-                if (v === null) return "";
-                return String(v).trim().toUpperCase();
-            });
-            headerRowIndex = i;
-            break;
-        }
-    }
-
-    if (headerRowIndex === -1 || headers.length === 0) {
-        // Fallback: logar as primeiras linhas para debug
-        for (let i = 0; i < Math.min(5, rawData.length); i++) {
-            const normalized = rawData[i].map(c => normalizeCellValue(c));
-            console.log(`[XLSX] Linha ${i + 1}: [${normalized.filter(Boolean).join(" | ")}]`);
-        }
-        throw new Error("Não foi possível identificar o cabeçalho da tabela. A planilha pode ter um formato não suportado. Verifique se existem pelo menos 4 colunas de dados com rótulos na parte superior.");
-    }
-
-    const cleanHeaders = headers.filter(Boolean);
-    console.log(`[XLSX/ExcelJS] Cabeçalho: [${cleanHeaders.join(", ")}]`);
+    console.log(`[XLSX] ${textLines.length} linhas extraídas como texto (${textLines.join("\n").length} chars)`);
 
     // ---- Salvar cabeçalhos brutos na carga (para tela de mapeamento manual) ----
-    await supabase
-        .from("cargas")
-        .update({ raw_headers: cleanHeaders })
-        .eq("id", carga.id);
-
-    const dataRows = rawData.slice(headerRowIndex + 1);
-    console.log(`[XLSX/ExcelJS] Linhas de dados a processar: ${dataRows.length}`);
-
-    // ---- Aprendizado Contínuo: consultar mapeamentos conhecidos ----
-    const knownMappings = await fetchKnownMappings(
-        supabase,
-        carga.organization_id as string | null,
-        cleanHeaders
-    );
-
-    let mapping;
-    if (knownMappings) {
-        // Usar mapeamentos salvos de importações anteriores
-        mapping = {
-            suggestions: knownMappings,
-            overallConfidence: Math.round(
-                knownMappings.reduce((acc, s) => acc + s.confidence, 0) / knownMappings.length
-            ),
-            unmappedKeys: cleanHeaders.filter(
-                h => !knownMappings.some(m => m.rawKey === h)
-            ),
-        };
-        console.log(`[XLSX/ExcelJS] Usando ${knownMappings.length} mapeamentos salvos. Confiança: ${mapping.overallConfidence}%`);
-    } else {
-        // Gemini sugere mapeamento de colunas
-        console.log(`[XLSX/ExcelJS] Solicitando mapeamento ao Gemini para ${cleanHeaders.length} colunas...`);
-        mapping = await suggestColumnMappings(cleanHeaders);
-        console.log(`[XLSX/ExcelJS] Confiança geral do mapeamento: ${mapping.overallConfidence}%`);
-        mapping.suggestions.forEach((s) => {
-            if (s.standardKey) {
-                console.log(`  "${s.rawKey}" → "${s.standardKey}" (${s.confidence}%)`);
-            }
-        });
-    }
-
-    // ---- Verificar se precisa de fallback humano ----
-    if (!knownMappings) {
-        // Só verifica fallback se NÃO usou mapeamentos salvos
-        const fallback = checkFallbackNeeded(dataRows.length, 0, 0, mapping.overallConfidence);
-        if (fallback.needsHelp) {
-            console.log(`[XLSX/ExcelJS] FALLBACK HUMANO: ${fallback.reason}`);
-            await supabase
-                .from("cargas")
-                .update({
-                    status: "needs_human_help",
-                    fallback_reason: fallback.reason,
-                })
-                .eq("id", carga.id);
-            return { processados: 0, paraRevisao: 0, needsHumanHelp: true };
-        }
-    }
-
-    // ---- Processar cada linha de dados ----
-    let linhasIgnoradas = 0;
-    for (const row of dataRows) {
-        if (!row || !Array.isArray(row)) continue;
-
-        const rowObject: Record<string, unknown> = {};
-        let isEmptyRow = true;
-
-        headers.forEach((h, index) => {
-            const raw = row[index];
-            // Reutilizar normalizeCellValue mas aceitar datas em dados (não em cabeçalho)
-            let cellVal: string | number | null = null;
-            if (raw instanceof Date) {
-                cellVal = raw.toISOString().split("T")[0]; // "2026-04-01"
-            } else {
-                cellVal = normalizeCellValue(raw);
-            }
-
-            if (h && cellVal !== null && String(cellVal).trim() !== "") {
-                rowObject[h] = cellVal;
-                isEmptyRow = false;
-            }
-        });
-
-        if (isEmptyRow) {
-            linhasIgnoradas++;
-            continue;
-        }
-
-        const { mapped, confidence } = applyMapping(
-            rowObject as Record<string, string | number>,
-            mapping.suggestions
-        );
-
-        if (confidence >= 80) {
-            const { error } = await supabase.from("moveis").insert({
-                categoria: mapped.categoria || "Sem Categoria",
-                modelo: mapped.modelo || "Sem Nome",
-                variante: mapped.variante || null,
-                tipo: mapped.tipo || null,
-                comprimento_cm: mapped.comprimento_cm || null,
-                largura_cm: mapped.largura_cm || null,
-                altura_cm: mapped.altura_cm || null,
-                material: mapped.material || null,
-                tecido: mapped.tecido || null,
-                preco: mapped.preco || 0,
-                condicao_pagamento: mapped.condicao_pagamento || null,
-                ativo: true,
-            });
-
-            if (!error) {
-                processados++;
-            } else {
-                console.error(`[XLSX/ExcelJS] Erro ao inserir produto:`, error);
-            }
-        } else {
-            await supabase.from("import_review_queue").insert({
-                carga_id: carga.id,
-                organization_id: carga.organization_id || null,
-                raw_data: rowObject,
-                mapped_data: mapped,
-                confidence_score: confidence,
-                status: "pending",
-            });
-            paraRevisao++;
-        }
-    }
-
-    console.log(`[XLSX/ExcelJS] Resumo: ${processados} inseridos, ${paraRevisao} para revisão, ${linhasIgnoradas} linhas em branco ignoradas.`);
-
-    // ---- Verificação pós-processamento ----
-    const postFallback = checkFallbackNeeded(dataRows.length - linhasIgnoradas, processados, paraRevisao, mapping.overallConfidence);
-    if (postFallback.needsHelp) {
-        console.log(`[XLSX/ExcelJS] FALLBACK PÓS-PROCESSAMENTO: ${postFallback.reason}`);
+    if (allHeaders.length > 0) {
         await supabase
             .from("cargas")
-            .update({
-                status: "needs_human_help",
-                fallback_reason: postFallback.reason,
-            })
+            .update({ raw_headers: allHeaders })
+            .eq("id", carga.id);
+    }
+
+    // ---- Aprendizado Contínuo: consultar mapeamentos conhecidos ----
+    if (allHeaders.length > 0) {
+        const knownMappings = await fetchKnownMappings(
+            supabase,
+            carga.organization_id as string | null,
+            allHeaders
+        );
+
+        // Se tiver mapeamentos salvos, usar o fluxo de mapeamento por coluna
+        if (knownMappings) {
+            console.log(`[XLSX] Usando ${knownMappings.length} mapeamentos salvos (aprendizado contínuo)`);
+            return await processWithColumnMapping(workbook, carga, supabase, allHeaders, knownMappings);
+        }
+    }
+
+    // ---- AI-FIRST: Enviar texto bruto ao Gemini ----
+    const rawText = textLines.join("\n");
+    console.log("[XLSX] Enviando conteúdo ao Gemini para extração inteligente...");
+    const { products, confidence: batchConfidence } = await extractProductsFromText(rawText);
+    console.log(`[XLSX] Gemini extraiu ${products.length} produtos com confiança ${batchConfidence}%.`);
+
+    // Verificar fallback
+    if (products.length === 0 || batchConfidence < 30) {
+        const reason = products.length === 0
+            ? "A IA não conseguiu extrair nenhum produto da planilha."
+            : `Confiança da extração muito baixa: ${batchConfidence}%.`;
+
+        await supabase
+            .from("cargas")
+            .update({ status: "needs_human_help", fallback_reason: reason })
+            .eq("id", carga.id);
+        return { processados: 0, paraRevisao: 0, needsHumanHelp: true };
+    }
+
+    // Inserir produtos
+    const { processados, paraRevisao } = await insertExtractedProducts(products, batchConfidence, carga, supabase);
+    console.log(`[XLSX] Resumo: ${processados} inseridos, ${paraRevisao} para revisão.`);
+
+    // Pós-verificação
+    const postFallback = checkFallbackNeeded(products.length, processados, paraRevisao, batchConfidence);
+    if (postFallback.needsHelp) {
+        await supabase
+            .from("cargas")
+            .update({ status: "needs_human_help", fallback_reason: postFallback.reason })
+            .eq("id", carga.id);
+        return { processados, paraRevisao, needsHumanHelp: true };
+    }
+
+    return { processados, paraRevisao, needsHumanHelp: false };
+}
+
+// ============================================
+// Processador CSV — Abordagem AI-FIRST
+// ============================================
+async function processCsv(
+    fileData: Blob,
+    carga: Record<string, unknown>,
+    supabase: AdminSupabase
+) {
+    const text = await fileData.text();
+
+    if (text.trim().length < 10) {
+        throw new Error("Arquivo CSV vazio ou sem dados legíveis.");
+    }
+
+    // Capturar cabeçalhos para salvar e para aprendizado contínuo
+    const { meta } = Papa.parse<Record<string, string>>(text, {
+        header: true,
+        skipEmptyLines: true,
+        preview: 1,
+        transformHeader: (h: string) => h.trim().toUpperCase(),
+    });
+
+    const headers = (meta.fields || []).filter(Boolean);
+
+    // Salvar cabeçalhos brutos na carga
+    if (headers.length > 0) {
+        await supabase
+            .from("cargas")
+            .update({ raw_headers: headers })
+            .eq("id", carga.id);
+    }
+
+    // Aprendizado Contínuo
+    if (headers.length > 0) {
+        const knownMappings = await fetchKnownMappings(
+            supabase,
+            carga.organization_id as string | null,
+            headers
+        );
+
+        if (knownMappings) {
+            console.log(`[CSV] Usando ${knownMappings.length} mapeamentos salvos`);
+            return await processCsvWithMapping(text, carga, supabase, knownMappings);
+        }
+    }
+
+    // AI-FIRST: enviar o texto bruto do CSV ao Gemini
+    // O CSV já é texto legível — envia os primeiros 15000 chars
+    console.log("[CSV] Enviando conteúdo ao Gemini para extração inteligente...");
+    const { products, confidence: batchConfidence } = await extractProductsFromText(text);
+    console.log(`[CSV] Gemini extraiu ${products.length} produtos com confiança ${batchConfidence}%.`);
+
+    if (products.length === 0 || batchConfidence < 30) {
+        const reason = products.length === 0
+            ? "A IA não conseguiu extrair nenhum produto do CSV."
+            : `Confiança da extração muito baixa: ${batchConfidence}%.`;
+
+        await supabase
+            .from("cargas")
+            .update({ status: "needs_human_help", fallback_reason: reason })
+            .eq("id", carga.id);
+        return { processados: 0, paraRevisao: 0, needsHumanHelp: true };
+    }
+
+    const { processados, paraRevisao } = await insertExtractedProducts(products, batchConfidence, carga, supabase);
+    console.log(`[CSV] Resumo: ${processados} inseridos, ${paraRevisao} para revisão.`);
+
+    const postFallback = checkFallbackNeeded(products.length, processados, paraRevisao, batchConfidence);
+    if (postFallback.needsHelp) {
+        await supabase
+            .from("cargas")
+            .update({ status: "needs_human_help", fallback_reason: postFallback.reason })
             .eq("id", carga.id);
         return { processados, paraRevisao, needsHumanHelp: true };
     }
@@ -504,9 +493,6 @@ async function processPdf(
     carga: Record<string, unknown>,
     supabase: AdminSupabase
 ) {
-    let processados = 0;
-    let paraRevisao = 0;
-
     const arrayBuffer = await fileData.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
@@ -523,82 +509,39 @@ async function processPdf(
     }
 
     if (pdfText.trim().length < 50) {
-        // Escalar para humano — PDF pode estar escaneado sem OCR
         await supabase
             .from("cargas")
             .update({
                 status: "needs_human_help",
-                fallback_reason: "PDF não contém texto legível suficiente. Pode ser um PDF escaneado sem OCR. É necessário um arquivo com texto selecionável.",
+                fallback_reason: "PDF não contém texto legível suficiente. Pode ser um PDF escaneado sem OCR.",
             })
             .eq("id", carga.id);
         return { processados: 0, paraRevisao: 0, needsHumanHelp: true };
     }
 
-    console.log("[PDF] Enviando texto ao Gemini para extração de produtos...");
+    console.log("[PDF] Enviando texto ao Gemini para extração...");
     const { products, confidence: batchConfidence } = await extractProductsFromText(pdfText);
-    console.log(`[PDF] Gemini extraiu ${products.length} produtos com confiança média ${batchConfidence}%.`);
+    console.log(`[PDF] Gemini extraiu ${products.length} produtos com confiança ${batchConfidence}%.`);
 
-    // Verificar fallback antes de processar
-    if (products.length === 0 || batchConfidence < 50) {
+    if (products.length === 0 || batchConfidence < 30) {
         const reason = products.length === 0
             ? "A IA não conseguiu extrair nenhum produto do PDF."
-            : `Confiança da extração muito baixa: ${batchConfidence}%. O formato do PDF não é reconhecido.`;
+            : `Confiança da extração muito baixa: ${batchConfidence}%.`;
 
         await supabase
             .from("cargas")
-            .update({
-                status: "needs_human_help",
-                fallback_reason: reason,
-            })
+            .update({ status: "needs_human_help", fallback_reason: reason })
             .eq("id", carga.id);
         return { processados: 0, paraRevisao: 0, needsHumanHelp: true };
     }
 
-    for (const product of products) {
-        const hasMinData = product.modelo || product.categoria;
-        const itemConfidence = hasMinData ? batchConfidence : Math.min(batchConfidence, 30);
+    const { processados, paraRevisao } = await insertExtractedProducts(products, batchConfidence, carga, supabase);
 
-        if (itemConfidence >= 80) {
-            const { error } = await supabase.from("moveis").insert({
-                categoria: product.categoria || "Sem Categoria",
-                modelo: product.modelo || "Sem Nome",
-                variante: product.variante || null,
-                tipo: product.tipo || null,
-                comprimento_cm: product.comprimento_cm ? Number(product.comprimento_cm) : null,
-                largura_cm: product.largura_cm ? Number(product.largura_cm) : null,
-                altura_cm: product.altura_cm ? Number(product.altura_cm) : null,
-                material: product.material || null,
-                tecido: product.tecido || null,
-                preco: product.preco ? Number(product.preco) : 0,
-                condicao_pagamento: product.condicao_pagamento || null,
-                ativo: true,
-            });
-
-            if (!error) {
-                processados++;
-            }
-        } else {
-            await supabase.from("import_review_queue").insert({
-                carga_id: carga.id,
-                organization_id: carga.organization_id || null,
-                raw_data: product,
-                mapped_data: product,
-                confidence_score: itemConfidence,
-                status: "pending",
-            });
-            paraRevisao++;
-        }
-    }
-
-    // Verificação pós-processamento
     const postFallback = checkFallbackNeeded(products.length, processados, paraRevisao, batchConfidence);
     if (postFallback.needsHelp) {
         await supabase
             .from("cargas")
-            .update({
-                status: "needs_human_help",
-                fallback_reason: postFallback.reason,
-            })
+            .update({ status: "needs_human_help", fallback_reason: postFallback.reason })
             .eq("id", carga.id);
         return { processados, paraRevisao, needsHumanHelp: true };
     }
@@ -607,113 +550,158 @@ async function processPdf(
 }
 
 // ============================================
-// Processador CSV com PapaParse + IA Gemini
+// Processador com mapeamento por coluna (aprendizado contínuo)
+// Usado quando existem field_mappings salvos para esta organização.
 // ============================================
-async function processCsv(
-    fileData: Blob,
+async function processWithColumnMapping(
+    workbook: ExcelJS.Workbook,
     carga: Record<string, unknown>,
-    supabase: AdminSupabase
+    supabase: AdminSupabase,
+    knownHeaders: string[],
+    mappings: MappingSuggestion[]
 ) {
     let processados = 0;
     let paraRevisao = 0;
 
-    // Ler o CSV como texto
-    const text = await fileData.text();
+    const worksheet = workbook.worksheets[0];
+    const rawData: (unknown[])[] = [];
 
-    if (text.trim().length < 10) {
-        throw new Error("Arquivo CSV vazio ou sem dados legíveis.");
+    worksheet.eachRow({ includeEmpty: false }, (row) => {
+        const values = Array.isArray(row.values)
+            ? (row.values as unknown[]).slice(1)
+            : [];
+        rawData.push(values);
+    });
+
+    // Encontrar linha do cabeçalho por correspondência com headers conhecidos
+    let headerRowIndex = -1;
+    for (let i = 0; i < Math.min(25, rawData.length); i++) {
+        const row = rawData[i];
+        const normalized = row.map(c => normalizeCellValue(c));
+        const rowLabels = normalized
+            .filter(v => typeof v === "string" && v.length < 40)
+            .map(v => String(v).toUpperCase());
+
+        const matches = knownHeaders.filter(h => rowLabels.includes(h));
+        if (matches.length >= 3) {
+            headerRowIndex = i;
+            break;
+        }
     }
 
-    // PapaParse auto-detecta delimitador (, ; \t)
-    const { data, meta, errors } = Papa.parse<Record<string, string>>(text, {
+    if (headerRowIndex === -1) {
+        // Fallback para AI-first
+        console.log("[XLSX/Mapping] Cabeçalho não encontrado para mapeamento salvo, usando IA");
+        const textLines = rawData
+            .map((row, idx) => {
+                const normalized = row.map(c => normalizeCellValue(c));
+                const nonEmpty = normalized.filter(v => v !== null);
+                if (nonEmpty.length < 2) return null;
+                return `Linha ${idx + 1}: ${normalized.map(v => v ?? "").join(" | ")}`;
+            })
+            .filter(Boolean);
+
+        const { products, confidence } = await extractProductsFromText(textLines.join("\n"));
+        const result = await insertExtractedProducts(products, confidence, carga, supabase);
+        return { ...result, needsHumanHelp: false };
+    }
+
+    // Extrair headers reais da linha encontrada
+    const fullHeaders = rawData[headerRowIndex].map(c => {
+        const v = normalizeCellValue(c);
+        return v ? String(v).toUpperCase() : "";
+    });
+    const dataRows = rawData.slice(headerRowIndex + 1);
+
+    const mappingConfig = {
+        suggestions: mappings,
+        overallConfidence: Math.round(mappings.reduce((acc, s) => acc + s.confidence, 0) / mappings.length),
+    };
+
+    for (const row of dataRows) {
+        if (!row || !Array.isArray(row)) continue;
+
+        const rowObject: Record<string, unknown> = {};
+        let isEmptyRow = true;
+
+        fullHeaders.forEach((h, index) => {
+            const cellVal = normalizeCellValue(row[index]);
+            if (h && cellVal !== null && String(cellVal).trim() !== "") {
+                rowObject[h] = cellVal;
+                isEmptyRow = false;
+            }
+        });
+
+        if (isEmptyRow) continue;
+
+        const { mapped, confidence } = applyMapping(
+            rowObject as Record<string, string | number>,
+            mappingConfig.suggestions
+        );
+
+        if (Object.keys(mapped).length === 0) continue;
+
+        if (confidence >= 80) {
+            const { error } = await supabase.from("moveis").insert({
+                categoria: mapped.categoria || "Sem Categoria",
+                modelo: mapped.modelo || "Sem Nome",
+                variante: mapped.variante || null,
+                tipo: mapped.tipo || null,
+                comprimento_cm: mapped.comprimento_cm ? Number(mapped.comprimento_cm) : null,
+                largura_cm: mapped.largura_cm ? Number(mapped.largura_cm) : null,
+                altura_cm: mapped.altura_cm ? Number(mapped.altura_cm) : null,
+                material: mapped.material || null,
+                tecido: mapped.tecido || null,
+                preco: mapped.preco ? Number(mapped.preco) : 0,
+                condicao_pagamento: mapped.condicao_pagamento || null,
+                ativo: true,
+            });
+            if (!error) processados++;
+        } else {
+            await supabase.from("import_review_queue").insert({
+                carga_id: carga.id,
+                organization_id: carga.organization_id || null,
+                raw_data: rowObject,
+                mapped_data: mapped,
+                confidence_score: confidence,
+                status: "pending",
+            });
+            paraRevisao++;
+        }
+    }
+
+    return { processados, paraRevisao, needsHumanHelp: false };
+}
+
+// ============================================
+// CSV com mapeamento salvo (aprendizado contínuo)
+// ============================================
+async function processCsvWithMapping(
+    text: string,
+    carga: Record<string, unknown>,
+    supabase: AdminSupabase,
+    mappings: MappingSuggestion[]
+) {
+    let processados = 0;
+    let paraRevisao = 0;
+
+    const { data } = Papa.parse<Record<string, string>>(text, {
         header: true,
         skipEmptyLines: true,
-        dynamicTyping: false, // manter tudo como string para o Gemini mapear
         transformHeader: (h: string) => h.trim().toUpperCase(),
     });
 
-    if (errors.length > 0) {
-        console.warn(`[CSV] PapaParse encontrou ${errors.length} avisos:`, errors.slice(0, 5));
-    }
+    const mappingConfig = {
+        suggestions: mappings,
+        overallConfidence: Math.round(mappings.reduce((acc, s) => acc + s.confidence, 0) / mappings.length),
+    };
 
-    const delimiter = meta.delimiter || ",";
-    const headers = meta.fields || [];
-
-    console.log(`[CSV] ${data.length} linhas, delimitador: "${delimiter}", colunas: [${headers.join(", ")}]`);
-
-    if (headers.length === 0 || data.length === 0) {
-        throw new Error("CSV não contém cabeçalho ou dados válidos.");
-    }
-
-    const cleanHeaders = headers.filter(Boolean);
-
-    // ---- Salvar cabeçalhos brutos na carga ----
-    await supabase
-        .from("cargas")
-        .update({ raw_headers: cleanHeaders })
-        .eq("id", carga.id);
-
-    // ---- Aprendizado Contínuo: consultar mapeamentos conhecidos ----
-    const knownMappings = await fetchKnownMappings(
-        supabase,
-        carga.organization_id as string | null,
-        cleanHeaders
-    );
-
-    let mapping;
-    if (knownMappings) {
-        mapping = {
-            suggestions: knownMappings,
-            overallConfidence: Math.round(
-                knownMappings.reduce((acc, s) => acc + s.confidence, 0) / knownMappings.length
-            ),
-            unmappedKeys: cleanHeaders.filter(
-                h => !knownMappings.some(m => m.rawKey === h)
-            ),
-        };
-        console.log(`[CSV] Usando ${knownMappings.length} mapeamentos salvos. Confiança: ${mapping.overallConfidence}%`);
-    } else {
-        // Gemini sugere mapeamento de colunas
-        console.log(`[CSV] Solicitando mapeamento ao Gemini para ${cleanHeaders.length} colunas...`);
-        mapping = await suggestColumnMappings(cleanHeaders);
-        console.log(`[CSV] Confiança geral do mapeamento: ${mapping.overallConfidence}%`);
-        mapping.suggestions.forEach((s) => {
-            if (s.standardKey) {
-                console.log(`  "${s.rawKey}" → "${s.standardKey}" (${s.confidence}%)`);
-            }
-        });
-    }
-
-    // ---- Verificar se precisa de fallback humano ----
-    if (!knownMappings) {
-        const fallback = checkFallbackNeeded(data.length, 0, 0, mapping.overallConfidence);
-        if (fallback.needsHelp) {
-            console.log(`[CSV] FALLBACK HUMANO: ${fallback.reason}`);
-            await supabase
-                .from("cargas")
-                .update({
-                    status: "needs_human_help",
-                    fallback_reason: fallback.reason,
-                })
-                .eq("id", carga.id);
-            return { processados: 0, paraRevisao: 0, needsHumanHelp: true };
-        }
-    }
-
-    // Processar cada linha
-    let linhasIgnoradas = 0;
     for (const row of data) {
-        // Verificar se a linha está vazia
         const hasContent = Object.values(row).some(
             (v) => v !== null && v !== undefined && String(v).trim() !== ""
         );
+        if (!hasContent) continue;
 
-        if (!hasContent) {
-            linhasIgnoradas++;
-            continue;
-        }
-
-        // Converter keys para UPPERCASE (já feito no header transform, mas garantir)
         const rowObject: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(row)) {
             if (value !== null && value !== undefined && String(value).trim() !== "") {
@@ -723,7 +711,7 @@ async function processCsv(
 
         const { mapped, confidence } = applyMapping(
             rowObject as Record<string, string | number>,
-            mapping.suggestions
+            mappingConfig.suggestions
         );
 
         if (confidence >= 80) {
@@ -741,12 +729,7 @@ async function processCsv(
                 condicao_pagamento: mapped.condicao_pagamento || null,
                 ativo: true,
             });
-
-            if (!error) {
-                processados++;
-            } else {
-                console.error(`[CSV] Erro ao inserir produto:`, error);
-            }
+            if (!error) processados++;
         } else {
             await supabase.from("import_review_queue").insert({
                 carga_id: carga.id,
@@ -758,21 +741,6 @@ async function processCsv(
             });
             paraRevisao++;
         }
-    }
-
-    console.log(`[CSV] Resumo: ${processados} inseridos, ${paraRevisao} para revisão, ${linhasIgnoradas} linhas em branco ignoradas.`);
-
-    // Verificação pós-processamento
-    const postFallback = checkFallbackNeeded(data.length - linhasIgnoradas, processados, paraRevisao, mapping.overallConfidence);
-    if (postFallback.needsHelp) {
-        await supabase
-            .from("cargas")
-            .update({
-                status: "needs_human_help",
-                fallback_reason: postFallback.reason,
-            })
-            .eq("id", carga.id);
-        return { processados, paraRevisao, needsHumanHelp: true };
     }
 
     return { processados, paraRevisao, needsHumanHelp: false };
@@ -799,7 +767,6 @@ export async function reprocessarComMapeamento(
             throw new Error(`Carga não encontrada: ${cargaErr?.message}`);
         }
 
-        // Download do arquivo
         const { data: fileData, error: downloadErr } = await supabase.storage
             .from("cargas")
             .download(carga.storage_path);
@@ -816,7 +783,6 @@ export async function reprocessarComMapeamento(
         }
 
         let rows: Record<string, unknown>[] = [];
-        let headers: string[] = [];
 
         if (isXlsx) {
             const arrayBuffer = await fileData.arrayBuffer();
@@ -825,7 +791,7 @@ export async function reprocessarComMapeamento(
             const worksheet = workbook.worksheets[0];
             if (!worksheet) throw new Error("Planilha vazia");
 
-            const rawData: (unknown[] | null[])[] = [];
+            const rawData: (unknown[])[] = [];
             worksheet.eachRow({ includeEmpty: false }, (row) => {
                 const values = Array.isArray(row.values)
                     ? (row.values as unknown[]).slice(1)
@@ -833,34 +799,25 @@ export async function reprocessarComMapeamento(
                 rawData.push(values);
             });
 
-            // Encontrar cabeçalho
-            for (let i = 0; i < Math.min(15, rawData.length); i++) {
+            // Encontrar cabeçalho pelo mesmo algoritmo
+            for (let i = 0; i < Math.min(25, rawData.length); i++) {
                 const row = rawData[i];
                 if (!Array.isArray(row)) continue;
-                const stringCells = row.filter(r => {
-                    if (r === null || r === undefined) return false;
-                    const str = String(r).trim();
-                    return str !== "" && isNaN(Number(str));
-                });
-                if (stringCells.length >= 3) {
-                    headers = row.map((h: unknown) => {
-                        if (h === null || h === undefined) return "";
-                        const val = typeof h === "object" && h !== null && "richText" in h
-                            ? (h as { richText: { text: string }[] }).richText.map(rt => rt.text).join("")
-                            : String(h);
-                        return val.trim().toUpperCase();
-                    });
+                const normalized = row.map(c => normalizeCellValue(c));
+                const labels = normalized.filter(v =>
+                    typeof v === "string" && v.length < 40 && isNaN(Number(v))
+                );
+
+                if (labels.length >= 4) {
+                    const headers = normalized.map(v => v ? String(v).toUpperCase() : "");
                     const dataRows = rawData.slice(i + 1);
                     for (const dr of dataRows) {
                         if (!dr || !Array.isArray(dr)) continue;
                         const obj: Record<string, unknown> = {};
                         let empty = true;
                         headers.forEach((h, idx) => {
-                            let cv = dr[idx];
-                            if (cv && typeof cv === "object" && "richText" in (cv as Record<string, unknown>)) {
-                                cv = ((cv as { richText: { text: string }[] }).richText || []).map(rt => rt.text).join("");
-                            }
-                            if (h && cv !== null && cv !== undefined && String(cv).trim() !== "") {
+                            const cv = normalizeCellValue(dr[idx]);
+                            if (h && cv !== null && String(cv).trim() !== "") {
                                 obj[h] = cv;
                                 empty = false;
                             }
@@ -872,12 +829,11 @@ export async function reprocessarComMapeamento(
             }
         } else {
             const text = await fileData.text();
-            const { data, meta } = Papa.parse<Record<string, string>>(text, {
+            const { data } = Papa.parse<Record<string, string>>(text, {
                 header: true,
                 skipEmptyLines: true,
                 transformHeader: (h: string) => h.trim().toUpperCase(),
             });
-            headers = meta.fields || [];
             rows = data.filter(row =>
                 Object.values(row).some(v => v !== null && v !== undefined && String(v).trim() !== "")
             );
@@ -886,7 +842,7 @@ export async function reprocessarComMapeamento(
         // Processar com mapeamento manual
         let processados = 0;
         for (const row of rows) {
-            const { mapped, confidence } = applyMapping(
+            const { mapped } = applyMapping(
                 row as Record<string, string | number>,
                 manualMappings,
                 0 // aceitar qualquer confiança, pois o mapeamento é manual

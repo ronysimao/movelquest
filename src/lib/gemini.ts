@@ -153,44 +153,52 @@ Formato exato:
 }
 
 // ============================================
-// Função 2: Extração de Produtos de Texto PDF
-// Recebe o texto bruto de um PDF e retorna lista de produtos extraídos
+// Função 2: Extração de Produtos de Texto (XLSX/CSV/PDF)
+// Recebe o texto bruto/tabelar de qualquer fonte e retorna lista de produtos
 // ============================================
 
 export async function extractProductsFromText(
-    pdfText: string,
-    maxProducts = 50
+    rawText: string,
+    maxProducts = 100
 ): Promise<{ products: ExtractedProduct[]; confidence: number }> {
     const genAI = getGeminiClient();
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
-Você é um especialista em extração de dados de catálogos de móveis.
-Analise o texto abaixo (extraído de um PDF de catálogo) e extraia a lista de produtos.
+Você é um especialista em extração de dados de catálogos de móveis brasileiros.
+Analise o conteúdo abaixo (pode ser de uma planilha XLSX, CSV ou PDF) e extraia TODOS os produtos.
 
-TEXTO DO CATÁLOGO:
+CONTEÚDO DO CATÁLOGO:
 ---
-${pdfText.substring(0, 8000)} ${pdfText.length > 8000 ? "... [truncado]" : ""}
+${rawText.substring(0, 15000)} ${rawText.length > 15000 ? "... [truncado]" : ""}
 ---
+
+INSTRUÇÕES IMPORTANTES:
+- Ignore linhas de cabeçalho, títulos, logos, datas e subtotais
+- Cada produto é uma linha de dados com preço, modelo, dimensões, etc.
+- Se houver colunas como "REF", "DESCRIÇÃO", "VLR" etc., interprete semanticamente
+- Preços podem estar em formato brasileiro: "1.250,00" ou "R$ 1250"
+- Dimensões podem estar como "L x A x P" ou em colunas separadas
+- Se uma coluna tiver valores como "SOFÁ 3 LUGARES", separe em modelo + variante
 
 CAMPOS A EXTRAIR (use null se não encontrar):
-- categoria: Categoria do móvel
+- categoria: Categoria do móvel (Sofá, Mesa, Cadeira, Rack, Estante, etc.)
 - modelo: Nome/modelo do produto
-- variante: Variação (ex: tamanho, número de lugares)
-- tipo: Subtipo ou linha
+- variante: Variação (ex: 2 lugares, com gaveta, cor)
+- tipo: Subtipo, linha ou coleção
 - comprimento_cm: Comprimento em cm (apenas número)
-- largura_cm: Largura em cm (apenas número)  
+- largura_cm: Largura em cm (apenas número)
 - altura_cm: Altura em cm (apenas número)
 - material: Material principal
 - tecido: Tecido ou revestimento
-- preco: Preço em reais (apenas número, sem R$)
+- preco: Preço em reais (apenas número decimal, sem "R$")
 - condicao_pagamento: Condição de pagamento
 
 Extraia no máximo ${maxProducts} produtos. Retorne JSON:
 {
   "confidence": 75,
   "products": [
-    { "categoria": "Sofá", "modelo": "Milano", "preco": 2500, ... },
+    { "categoria": "Sofá", "modelo": "Milano", "variante": "3 lugares", "preco": 2500.00, ... },
     ...
   ]
 }
@@ -214,7 +222,7 @@ Extraia no máximo ${maxProducts} produtos. Retorne JSON:
             confidence: parsed.confidence || 50,
         };
     } catch (err) {
-        console.error("[Gemini] Erro na extração de PDF:", err);
+        console.error("[Gemini] Erro na extração de produtos:", err);
         return { products: [], confidence: 0 };
     }
 }
