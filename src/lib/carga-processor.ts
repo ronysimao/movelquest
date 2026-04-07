@@ -14,9 +14,17 @@
  */
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import ExcelJS from "exceljs";
-import Papa from "papaparse";
 import { extractProductsFromText, applyMapping, type MappingSuggestion, type ExtractedProduct } from "@/lib/gemini";
+
+// Imports dinâmicos (lazy) para não estourar o tamanho das serverless functions
+async function getExcelJS() {
+    const mod = await import("exceljs");
+    return mod.default;
+}
+async function getPapaParse() {
+    const mod = await import("papaparse");
+    return mod.default;
+}
 
 type AdminSupabase = SupabaseClient;
 
@@ -296,7 +304,8 @@ async function processXlsx(
     supabase: AdminSupabase
 ) {
     const arrayBuffer = await fileData.arrayBuffer();
-    const workbook = new ExcelJS.Workbook();
+    const ExcelJSLib = await getExcelJS();
+    const workbook = new ExcelJSLib.Workbook();
     await workbook.xlsx.load(arrayBuffer);
 
     const worksheet = workbook.worksheets[0];
@@ -311,7 +320,7 @@ async function processXlsx(
     const allHeaders: string[] = [];
     let headerCaptured = false;
 
-    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    worksheet.eachRow({ includeEmpty: false }, (row: any, rowNumber: number) => {
         const values = Array.isArray(row.values)
             ? (row.values as unknown[]).slice(1) // ExcelJS é 1-indexed
             : [];
@@ -421,6 +430,7 @@ async function processCsv(
     }
 
     // Capturar cabeçalhos para salvar e para aprendizado contínuo
+    const Papa = await getPapaParse();
     const { meta } = Papa.parse<Record<string, string>>(text, {
         header: true,
         skipEmptyLines: true,
@@ -554,7 +564,7 @@ async function processPdf(
 // Usado quando existem field_mappings salvos para esta organização.
 // ============================================
 async function processWithColumnMapping(
-    workbook: ExcelJS.Workbook,
+    workbook: any,
     carga: Record<string, unknown>,
     supabase: AdminSupabase,
     knownHeaders: string[],
@@ -566,7 +576,7 @@ async function processWithColumnMapping(
     const worksheet = workbook.worksheets[0];
     const rawData: (unknown[])[] = [];
 
-    worksheet.eachRow({ includeEmpty: false }, (row) => {
+    worksheet.eachRow({ includeEmpty: false }, (row: any) => {
         const values = Array.isArray(row.values)
             ? (row.values as unknown[]).slice(1)
             : [];
@@ -685,6 +695,7 @@ async function processCsvWithMapping(
     let processados = 0;
     let paraRevisao = 0;
 
+    const Papa = await getPapaParse();
     const { data } = Papa.parse<Record<string, string>>(text, {
         header: true,
         skipEmptyLines: true,
@@ -786,13 +797,14 @@ export async function reprocessarComMapeamento(
 
         if (isXlsx) {
             const arrayBuffer = await fileData.arrayBuffer();
-            const workbook = new ExcelJS.Workbook();
+            const ExcelJSLib = await getExcelJS();
+            const workbook = new ExcelJSLib.Workbook();
             await workbook.xlsx.load(arrayBuffer);
             const worksheet = workbook.worksheets[0];
             if (!worksheet) throw new Error("Planilha vazia");
 
             const rawData: (unknown[])[] = [];
-            worksheet.eachRow({ includeEmpty: false }, (row) => {
+            worksheet.eachRow({ includeEmpty: false }, (row: any) => {
                 const values = Array.isArray(row.values)
                     ? (row.values as unknown[]).slice(1)
                     : [];
@@ -829,6 +841,7 @@ export async function reprocessarComMapeamento(
             }
         } else {
             const text = await fileData.text();
+            const Papa = await getPapaParse();
             const { data } = Papa.parse<Record<string, string>>(text, {
                 header: true,
                 skipEmptyLines: true,

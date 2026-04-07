@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase";
 import { STANDARD_FIELDS, type MappingSuggestion, type StandardFieldKey } from "@/lib/gemini";
-import { reprocessarComMapeamento } from "@/lib/carga-processor";
+// carga-processor importado dinamicamente dentro do POST para não carregar ExcelJS (23MB) no cold start
 
 /**
  * GET /api/cargas/[id]/mapeamento
@@ -228,6 +228,8 @@ export async function POST(
             .eq("status", "pending");
 
         // 5. Re-processar a carga com o mapeamento manual
+        // Import dinâmico para não carregar ExcelJS no cold start
+        const { reprocessarComMapeamento } = await import("@/lib/carga-processor");
         const result = await reprocessarComMapeamento(
             Number(cargaId),
             manualSuggestions

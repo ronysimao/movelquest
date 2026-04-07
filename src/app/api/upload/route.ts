@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase";
-import { processarCarga } from "@/lib/carga-processor";
+// carga-processor importado dinamicamente para não carregar ExcelJS (23MB) no cold start
 
 // Validação por extensão de arquivo (mais confiável que MIME type,
 // pois o browser pode enviar 'application/octet-stream' para .xlsx)
@@ -116,10 +116,14 @@ export async function POST(request: NextRequest) {
         // Acionar processamento diretamente (sem HTTP round-trip)
         // Fire-and-forget: a promise resolve em background sem bloquear a resposta
         console.log(`[Upload] Acionando processamento direto para carga ${carga.id}...`);
-        processarCarga(carga.id).then((result) => {
-            console.log(`[Upload] Processamento da carga ${carga.id} finalizado:`, result);
-        }).catch((err) => {
-            console.error(`[Upload] Erro no processamento da carga ${carga.id}:`, err);
+        import("@/lib/carga-processor").then(({ processarCarga }) => {
+            processarCarga(carga.id).then((result: unknown) => {
+                console.log(`[Upload] Processamento da carga ${carga.id} finalizado:`, result);
+            }).catch((err: unknown) => {
+                console.error(`[Upload] Erro no processamento da carga ${carga.id}:`, err);
+            });
+        }).catch((err: unknown) => {
+            console.error(`[Upload] Erro ao carregar módulo carga-processor:`, err);
         });
 
         return NextResponse.json({

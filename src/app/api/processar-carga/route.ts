@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { processarCarga } from "@/lib/carga-processor";
+// carga-processor importado dinamicamente para não carregar ExcelJS (23MB) no cold start
 
 /**
  * POST /api/processar-carga
@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Delegar ao processador central (já usa ExcelJS)
+        // Import dinâmico para não carregar ExcelJS no cold start
+        const { processarCarga } = await import("@/lib/carga-processor");
         const result = await processarCarga(carga_id);
 
         if (!result.success) {
