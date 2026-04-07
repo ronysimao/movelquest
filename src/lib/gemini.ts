@@ -60,7 +60,7 @@ export async function suggestColumnMappings(
     existingMappings?: Record<string, string>
 ): Promise<MappingResult> {
     const genAI = getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const standardFieldsDesc = {
         categoria: "Categoria do móvel (ex: Sofá, Mesa, Cadeira)",
@@ -162,7 +162,7 @@ export async function extractProductsFromText(
     maxProducts = 100
 ): Promise<{ products: ExtractedProduct[]; confidence: number }> {
     const genAI = getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const prompt = `
 Você é um especialista em extração de dados de catálogos de móveis brasileiros.

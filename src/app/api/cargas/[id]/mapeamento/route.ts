@@ -41,7 +41,7 @@ export async function GET(
         // 1. Buscar dados da carga
         const { data: carga, error: cargaErr } = await supabase
             .from("cargas")
-            .select("id, nome_arquivo, raw_headers, fallback_reason, status, organization_id, storage_path")
+            .select("id, nome_arquivo, raw_headers, fallback_reason, status, storage_path")
             .eq("id", cargaId)
             .single();
 
@@ -63,16 +63,8 @@ export async function GET(
             );
         }
 
-        // 2. Buscar mapeamentos existentes para esta organização
-        let existingMappings: { raw_key: string; standard_key: string }[] = [];
-        if (carga.organization_id) {
-            const { data: mappings } = await supabase
-                .from("field_mappings")
-                .select("raw_key, standard_key")
-                .eq("organization_id", carga.organization_id)
-                .eq("is_active", true);
-            existingMappings = mappings || [];
-        }
+        // 2. Buscar mapeamentos existentes (TODO: habilitar quando cargas tiver organization_id)
+        const existingMappings: { raw_key: string; standard_key: string }[] = [];
 
         // 3. Extrair amostra de dados (primeiras 5 linhas do arquivo)
         let sampleData: Record<string, unknown>[] = [];
@@ -206,7 +198,7 @@ export async function POST(
         // 1. Buscar dados da carga
         const { data: carga } = await supabase
             .from("cargas")
-            .select("id, organization_id")
+            .select("id")
             .eq("id", cargaId)
             .single();
 
@@ -214,28 +206,9 @@ export async function POST(
             return NextResponse.json({ error: "Carga não encontrada" }, { status: 404 });
         }
 
-        // 2. Salvar mapeamentos como template (se solicitado)
-        if (saveAsTemplate && carga.organization_id) {
-            for (const m of mappings) {
-                if (!m.standardKey) continue; // pular colunas ignoradas
-
-                // Upsert: se já existe um mapeamento para esta raw_key, atualiza
-                await supabase
-                    .from("field_mappings")
-                    .upsert(
-                        {
-                            organization_id: carga.organization_id,
-                            fornecedor_id: null,
-                            raw_key: m.rawKey.trim().toUpperCase(),
-                            standard_key: m.standardKey,
-                            confidence: 100, // mapeamento manual = confiança máxima
-                            is_active: true,
-                        },
-                        { onConflict: "organization_id,fornecedor_id,raw_key" }
-                    );
-            }
-            console.log(`[Mapeamento] ${mappings.filter((m: { standardKey: string | null }) => m.standardKey).length} mapeamentos salvos como template.`);
-        }
+        // 2. Salvar mapeamentos como template (TODO: habilitar quando cargas tiver organization_id)
+        // Por enquanto, apenas loga
+        console.log(`[Mapeamento] ${mappings.filter((m: { standardKey: string | null }) => m.standardKey).length} mapeamentos recebidos.`);
 
         // 3. Converter para formato MappingSuggestion e re-processar
         const manualSuggestions: MappingSuggestion[] = mappings

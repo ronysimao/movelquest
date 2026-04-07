@@ -190,7 +190,7 @@ async function insertExtractedProducts(
         } else {
             await supabase.from("import_review_queue").insert({
                 carga_id: carga.id,
-                organization_id: carga.organization_id || null,
+                organization_id: null,
                 raw_data: product,
                 mapped_data: product,
                 confidence_score: itemConfidence,
@@ -368,7 +368,7 @@ async function processXlsx(
     if (allHeaders.length > 0) {
         const knownMappings = await fetchKnownMappings(
             supabase,
-            carga.organization_id as string | null,
+            null, // TODO: usar carga.organization_id quando coluna existir
             allHeaders
         );
 
@@ -452,7 +452,7 @@ async function processCsv(
     if (headers.length > 0) {
         const knownMappings = await fetchKnownMappings(
             supabase,
-            carga.organization_id as string | null,
+            null, // TODO: usar carga.organization_id quando coluna existir
             headers
         );
 
@@ -670,7 +670,7 @@ async function processWithColumnMapping(
         } else {
             await supabase.from("import_review_queue").insert({
                 carga_id: carga.id,
-                organization_id: carga.organization_id || null,
+                organization_id: null,
                 raw_data: rowObject,
                 mapped_data: mapped,
                 confidence_score: confidence,
@@ -744,7 +744,7 @@ async function processCsvWithMapping(
         } else {
             await supabase.from("import_review_queue").insert({
                 carga_id: carga.id,
-                organization_id: carga.organization_id || null,
+                organization_id: null,
                 raw_data: rowObject,
                 mapped_data: mapped,
                 confidence_score: confidence,
