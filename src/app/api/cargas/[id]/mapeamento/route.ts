@@ -23,6 +23,19 @@ export async function GET(
         }
 
         const { id: cargaId } = await params;
+
+        // Validar env vars antes de criar client
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            console.error("[Mapeamento GET] ENV VARS FALTANDO:", {
+                hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+                hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+            });
+            return NextResponse.json(
+                { error: "Configuração do servidor incompleta", details: "Variáveis de ambiente Supabase não configuradas" },
+                { status: 500 }
+            );
+        }
+
         const supabase = createAdminClient();
 
         // 1. Buscar dados da carga
@@ -33,7 +46,21 @@ export async function GET(
             .single();
 
         if (cargaErr || !carga) {
-            return NextResponse.json({ error: "Carga não encontrada" }, { status: 404 });
+            console.error("[Mapeamento GET] Carga não encontrada:", {
+                cargaId,
+                cargaErr: cargaErr?.message,
+                cargaErrCode: cargaErr?.code,
+                cargaErrDetails: cargaErr?.details,
+            });
+            return NextResponse.json(
+                {
+                    error: "Carga não encontrada",
+                    details: cargaErr?.message || `ID ${cargaId} não existe`,
+                    code: cargaErr?.code,
+                    hint: cargaErr?.details,
+                },
+                { status: 404 }
+            );
         }
 
         // 2. Buscar mapeamentos existentes para esta organização

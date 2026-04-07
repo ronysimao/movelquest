@@ -81,7 +81,9 @@ export default function MapeamentoPage() {
                 setMappings(initialMappings);
             } else {
                 console.error("[Mapeamento] API error:", json);
-                setLoadError(json.error || `Erro HTTP ${res.status}`);
+                const details = json.details ? ` (${json.details})` : "";
+                const code = json.code ? ` [${json.code}]` : "";
+                setLoadError(`${json.error || `Erro HTTP ${res.status}`}${details}${code}`);
             }
         } catch (e) {
             console.error("[Mapeamento] Fetch error:", e);
